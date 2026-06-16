@@ -1,0 +1,224 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
+import '../shared.dart';
+import '../db/database.dart';
+import '../db/models.dart';
+
+/// Stripped-down card: Pers + Courses + ERE + Discipline (5 rows).
+/// No Kindred, Leave, Bank, Home, Edn, Cadres, Promotions.
+class JcoShortCard extends StatefulWidget {
+  final JcoOrModel? record;
+  final VoidCallback onSaved;
+  const JcoShortCard({super.key, this.record, required this.onSaved});
+  @override
+  State<JcoShortCard> createState() => _JcoShortCardState();
+}
+
+class _JcoShortCardState extends State<JcoShortCard> {
+  final _db = AppDatabase.instance;
+  bool _saving = false;
+
+  final _armyNo=TextEditingController(); final _name=TextEditingController();
+  final _dob=TextEditingController(); final _doe=TextEditingController();
+  final _dor=TextEditingController(); final _tos=TextEditingController();
+  final _rrEre=TextEditingController(); final _icard=TextEditingController();
+  final _honours=TextEditingController(); final _pan=TextEditingController();
+  final _caste=TextEditingController(); final _civEdn=TextEditingController();
+  final _medCat=TextEditingController(); final _persProblem=TextEditingController();
+  final _diag=TextEditingController(); final _dueOn=TextEditingController();
+  String? _rank, _coy, _bloodGp, _svcExtn, _photoPath;
+
+  // Courses
+  final _cSec=TextEditingController(); final _cMmg=TextEditingController();
+  final _cMor=TextEditingController(); final _cSnip=TextEditingController();
+  final _cAdp=TextEditingController(); final _cAtgm=TextEditingController();
+  final _cDrill=TextEditingController(); final _cBmic=TextEditingController();
+  final _cUei=TextEditingController(); final _cCdo=TextEditingController();
+  final _cQm=TextEditingController(); final _cRsi=TextEditingController();
+  final _cJlc=TextEditingController(); final _cPc=TextEditingController();
+  final _cPt=TextEditingController(); final _cTpt=TextEditingController();
+  final _cMisc=TextEditingController();
+
+  // ERE
+  final List<TextEditingController> _ereN=List.generate(3,(_)=>TextEditingController());
+  final List<TextEditingController> _ereF=List.generate(3,(_)=>TextEditingController());
+  final List<TextEditingController> _ereT=List.generate(3,(_)=>TextEditingController());
+
+  // Discipline (5 rows for Short)
+  final List<TextEditingController> _dOff=List.generate(5,(_)=>TextEditingController());
+  final List<TextEditingController> _dAwd=List.generate(5,(_)=>TextEditingController());
+  final List<TextEditingController> _dDt=List.generate(5,(_)=>TextEditingController());
+  final List<String?> _dEnt=List.filled(5,null,growable:false);
+
+  @override
+  void initState() { super.initState(); if(widget.record!=null)_populate(widget.record!); }
+  @override
+  void didUpdateWidget(JcoShortCard o) {
+    super.didUpdateWidget(o);
+    if(o.record!=widget.record){if(widget.record!=null)_populate(widget.record!);else _clear();}
+  }
+  @override
+  void dispose() {
+    for(final c in [_armyNo,_name,_dob,_doe,_dor,_tos,_rrEre,_icard,_honours,_pan,
+        _caste,_civEdn,_medCat,_persProblem,_diag,_dueOn,
+        _cSec,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cDrill,_cBmic,_cUei,
+        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc]) c.dispose();
+    for(final c in [..._ereN,..._ereF,..._ereT,..._dOff,..._dAwd,..._dDt]) c.dispose();
+    super.dispose();
+  }
+
+  void _populate(JcoOrModel r) {
+    _armyNo.text=r.armyNo??'';_name.text=r.name??'';_dob.text=r.dob??'';
+    _doe.text=r.doe??'';_dor.text=r.dor??'';_tos.text=r.tos??'';
+    _rrEre.text=r.rrEreFmn??'';_icard.text=r.icardNo??'';_honours.text=r.honoursAwards??'';
+    _pan.text=r.panCardNo??'';_caste.text=r.caste??'';_civEdn.text=r.civEdn??'';
+    _medCat.text=r.medCat??'';_persProblem.text=r.personalProblem??'';
+    _diag.text=r.diag??'';_dueOn.text=r.dueOn??'';
+    _cSec.text=r.cSecCdr??'';_cMmg.text=r.cMmgAgl??'';_cMor.text=r.cMorJn??'';
+    _cSnip.text=r.cSniper??'';_cAdp.text=r.cAdp??'';_cAtgm.text=r.cAtgm??'';
+    _cDrill.text=r.cDrill??'';_cBmic.text=r.cBmic??'';_cUei.text=r.cUei??'';
+    _cCdo.text=r.cCdo??'';_cQm.text=r.cQm??'';_cRsi.text=r.cRsi??'';
+    _cJlc.text=r.cJlc??'';_cPc.text=r.cPc??'';_cPt.text=r.cPt??'';
+    _cTpt.text=r.cTpt??'';_cMisc.text=r.cMisc??'';
+    for(int i=0;i<3;i++){_ereN[i].text=[r.ere1Name,r.ere2Name,r.ere3Name][i]??'';
+      _ereF[i].text=[r.ere1From,r.ere2From,r.ere3From][i]??'';
+      _ereT[i].text=[r.ere1To,r.ere2To,r.ere3To][i]??'';}
+    for(int i=0;i<5;i++){_dOff[i].text=[r.d1Off,r.d2Off,r.d3Off,r.d4Off,r.d5Off][i]??'';
+      _dAwd[i].text=[r.d1Awd,r.d2Awd,r.d3Awd,r.d4Awd,r.d5Awd][i]??'';
+      _dDt[i].text=[r.d1Dt,r.d2Dt,r.d3Dt,r.d4Dt,r.d5Dt][i]??'';}
+    final de=[r.d1Ent,r.d2Ent,r.d3Ent,r.d4Ent,r.d5Ent];
+    setState((){_rank=r.rank;_coy=r.coy;_bloodGp=r.bloodGp;_svcExtn=r.serviceExtn;_photoPath=r.photoPath;
+      for(int i=0;i<5;i++) _dEnt[i]=de[i];});
+  }
+
+  void _clear() {
+    for(final c in [_armyNo,_name,_dob,_doe,_dor,_tos,_rrEre,_icard,_honours,_pan,
+        _caste,_civEdn,_medCat,_persProblem,_diag,_dueOn,
+        _cSec,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cDrill,_cBmic,_cUei,
+        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc]) c.clear();
+    for(final c in [..._ereN,..._ereF,..._ereT,..._dOff,..._dAwd,..._dDt]) c.clear();
+    setState((){_rank=null;_coy=null;_bloodGp=null;_svcExtn=null;_photoPath=null;
+      for(int i=0;i<5;i++) _dEnt[i]=null;});
+  }
+
+  JcoOrModel _buildModel(){
+    final m=JcoOrModel(subCategory:SubCat.jcoShort,id:widget.record?.id);
+    m.armyNo=_armyNo.text.trim();m.rank=_rank;m.name=_name.text.trim();
+    m.coy=_coy;m.dob=_dob.text;m.doe=_doe.text;m.dor=_dor.text;
+    m.tos=_tos.text;m.rrEreFmn=_rrEre.text.trim();m.serviceExtn=_svcExtn;
+    m.icardNo=_icard.text.trim();m.honoursAwards=_honours.text.trim();
+    m.panCardNo=_pan.text.trim();m.bloodGp=_bloodGp;m.caste=_caste.text.trim();
+    m.civEdn=_civEdn.text.trim();m.medCat=_medCat.text.trim();
+    m.personalProblem=_persProblem.text.trim();m.diag=_diag.text.trim();m.dueOn=_dueOn.text;m.photoPath=_photoPath;
+    m.cSecCdr=_cSec.text;m.cMmgAgl=_cMmg.text;m.cMorJn=_cMor.text;m.cSniper=_cSnip.text;
+    m.cAdp=_cAdp.text;m.cAtgm=_cAtgm.text;m.cDrill=_cDrill.text;m.cBmic=_cBmic.text;
+    m.cUei=_cUei.text;m.cCdo=_cCdo.text;m.cQm=_cQm.text;m.cRsi=_cRsi.text;
+    m.cJlc=_cJlc.text;m.cPc=_cPc.text;m.cPt=_cPt.text;m.cTpt=_cTpt.text;m.cMisc=_cMisc.text;
+    m.ere1Name=_ereN[0].text;m.ere1From=_ereF[0].text;m.ere1To=_ereT[0].text;
+    m.ere2Name=_ereN[1].text;m.ere2From=_ereF[1].text;m.ere2To=_ereT[1].text;
+    m.ere3Name=_ereN[2].text;m.ere3From=_ereF[2].text;m.ere3To=_ereT[2].text;
+    m.d1Off=_dOff[0].text;m.d1Awd=_dAwd[0].text;m.d1Dt=_dDt[0].text;m.d1Ent=_dEnt[0];
+    m.d2Off=_dOff[1].text;m.d2Awd=_dAwd[1].text;m.d2Dt=_dDt[1].text;m.d2Ent=_dEnt[1];
+    m.d3Off=_dOff[2].text;m.d3Awd=_dAwd[2].text;m.d3Dt=_dDt[2].text;m.d3Ent=_dEnt[2];
+    m.d4Off=_dOff[3].text;m.d4Awd=_dAwd[3].text;m.d4Dt=_dDt[3].text;m.d4Ent=_dEnt[3];
+    m.d5Off=_dOff[4].text;m.d5Awd=_dAwd[4].text;m.d5Dt=_dDt[4].text;m.d5Ent=_dEnt[4];
+    return m;
+  }
+
+  Future<void> _save() async {
+    if(_name.text.trim().isEmpty){showSnack(context,'Name is required.',error:true);return;}
+    if(_armyNo.text.trim().isEmpty){showSnack(context,'Army No is required.',error:true);return;}
+    setState(()=>_saving=true);
+    try{final m=_buildModel();if(m.id==null)await _db.insertJco(m);else await _db.updateJco(m);
+      if(mounted){showSnack(context,m.id==null?'Record saved.':'Record updated.');widget.onSaved();}}
+    catch(e){if(mounted)showSnack(context,'Error: $e',error:true);}
+    if(mounted)setState(()=>_saving=false);
+  }
+  Future<void> _delete() async {
+    if(widget.record?.id==null)return;
+    final ok=await confirmDialog(context,'Delete Record','Permanently delete "${widget.record!.name}"?');
+    if(!ok)return;await _db.deleteJco(widget.record!.id!);
+    if(mounted){showSnack(context,'Record deleted.');widget.onSaved();}
+  }
+  Future<void> _pickPhoto() async {
+    final r=await FilePicker.platform.pickFiles(type:FileType.image);if(r==null)return;
+    final src=File(r.files.single.path!);final dir=await _db.photosDirectory;
+    final fn='${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await src.copy(p.join(dir,fn));setState(()=>_photoPath=p.join(dir,fn));
+  }
+  Future<void> _pd(TextEditingController c)=>pickDate(context,c).then((_)=>setState((){}));
+  Widget _f(String l,TextEditingController c,{double w=210})=>SizedBox(width:w,
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+      Padding(padding:const EdgeInsets.only(bottom:4),child:Text(l.toUpperCase(),style:kLabelStyle)),
+      TextField(controller:c,style:kFieldStyle,decoration:kDec())]));
+  Widget _fDate(String l,TextEditingController c,{double w=160})=>SizedBox(width:w,
+    child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+      Padding(padding:const EdgeInsets.only(bottom:4),child:Text(l.toUpperCase(),style:kLabelStyle)),
+      TextField(controller:c,readOnly:true,style:kFieldStyle,onTap:()=>_pd(c),
+          decoration:kDec().copyWith(suffixIcon:const Icon(Icons.calendar_today_outlined,size:14)))]));
+  Widget _dd(String l,String? val,List<String> opts,void Function(String?) cb,{double w=170})=>
+    SizedBox(width:w,child:Column(crossAxisAlignment:CrossAxisAlignment.start,mainAxisSize:MainAxisSize.min,children:[
+      Padding(padding:const EdgeInsets.only(bottom:4),child:Text(l.toUpperCase(),style:kLabelStyle)),
+      DropdownButtonFormField<String>(value:val,isExpanded:true,style:kFieldStyle.copyWith(color:kInk),
+          items:opts.map((o)=>DropdownMenuItem(value:o,child:Text(o,style:kFieldStyle))).toList(),onChanged:cb)]));
+  Widget _tHdr(String t)=>Padding(padding:const EdgeInsets.only(bottom:6,left:2),child:Text(t.toUpperCase(),style:kLabelStyle));
+  Widget _ereTable()=>Table(columnWidths:const{0:FlexColumnWidth(4),1:FlexColumnWidth(2),2:FlexColumnWidth(2)},
+    children:[TableRow(children:[_tHdr('ERE Name'),_tHdr('From'),_tHdr('To')]),
+      for(int i=0;i<3;i++) TableRow(children:[
+        Padding(padding:const EdgeInsets.only(bottom:8,right:10),child:TextField(controller:_ereN[i],style:kFieldStyle,decoration:kDec())),
+        Padding(padding:const EdgeInsets.only(bottom:8,right:10),child:TextField(controller:_ereF[i],readOnly:true,style:kFieldStyle,onTap:()=>_pd(_ereF[i]),
+            decoration:kDec().copyWith(suffixIcon:const Icon(Icons.calendar_today_outlined,size:14)))),
+        Padding(padding:const EdgeInsets.only(bottom:8),child:TextField(controller:_ereT[i],readOnly:true,style:kFieldStyle,onTap:()=>_pd(_ereT[i]),
+            decoration:kDec().copyWith(suffixIcon:const Icon(Icons.calendar_today_outlined,size:14)))),
+      ])]);
+
+  @override
+  Widget build(BuildContext context){
+    return Column(children:[
+      Container(width:double.infinity,padding:const EdgeInsets.symmetric(vertical:10,horizontal:14),
+        color:const Color(0xFFE8E9EC),
+        child:const Text('JCOs/OR SHORT : DATA CARD',style:TextStyle(fontSize:15,fontWeight:FontWeight.w900,letterSpacing:.4,color:kSlate))),
+      const SizedBox(height:14),
+      CardSection(title:'Pers Details',child:Column(children:[Row(crossAxisAlignment:CrossAxisAlignment.start,children:[
+        Expanded(child:Wrap(spacing:14,runSpacing:14,children:[
+          _f('Army No',_armyNo,w:170),_dd('Rank',_rank,kJcoRanks,(v)=>setState(()=>_rank=v),w:140),
+          _f('Name',_name,w:290),_fDate('DOB',_dob,w:150),_fDate('DOE',_doe,w:150),
+          _fDate('DOR',_dor,w:150),_fDate('TOS',_tos,w:150),
+          _dd('Coy',_coy,kCoys,(v)=>setState(()=>_coy=v),w:100),_f('RR/ERE/FMN',_rrEre,w:220),
+          _dd('Svc Extn',_svcExtn,kYesNo,(v)=>setState(()=>_svcExtn=v),w:140),
+          _f('ICard No',_icard,w:160),_f('PAN Card No',_pan,w:180),
+          _dd('Blood GP',_bloodGp,kBlood,(v)=>setState(()=>_bloodGp=v),w:120),
+          _f('Caste',_caste,w:150),_f('Civ Edn',_civEdn,w:160),_f('Med Cat',_medCat,w:140),
+          _f('Diag',_diag,w:200),_fDate('Due On',_dueOn,w:150),
+          _f('Honours and Awards',_honours,w:440),_f('Personal Problem',_persProblem,w:440),
+        ])),const SizedBox(width:16),PhotoBox(photoPath:_photoPath,onTap:_pickPhoto),
+      ])])),
+      CardSection(title:'Army Courses',child:Wrap(spacing:14,runSpacing:14,children:[
+        _f('Sec Cdr',_cSec,w:140),_f('MMG AGL',_cMmg,w:140),_f('Mor Jn',_cMor,w:140),_f('Sniper',_cSnip,w:140),
+        _f('ADP',_cAdp,w:140),_f('ATGM',_cAtgm,w:140),_f('Drill',_cDrill,w:140),_f('BMIC',_cBmic,w:140),
+        _f('UEI',_cUei,w:140),_f('CDO',_cCdo,w:140),_f('QM',_cQm,w:140),_f('RSI',_cRsi,w:140),
+        _f('JLC',_cJlc,w:140),_f('PC',_cPc,w:140),_f('PT',_cPt,w:140),_f('TPT',_cTpt,w:140),_f('Misc',_cMisc,w:140),
+      ])),
+      CardSection(title:'ERE Details',child:_ereTable()),
+      CardSection(title:'Discipline',child:Table(
+        columnWidths:const{0:FlexColumnWidth(4),1:FlexColumnWidth(3),2:FlexColumnWidth(2),3:FlexColumnWidth(1)},
+        children:[TableRow(children:[_tHdr('Offence'),_tHdr('Awarded'),_tHdr('Date'),_tHdr('Entry')]),
+          for(int i=0;i<5;i++) TableRow(children:[
+            Padding(padding:const EdgeInsets.only(bottom:8,right:8),child:TextField(controller:_dOff[i],style:kFieldStyle,decoration:kDec())),
+            Padding(padding:const EdgeInsets.only(bottom:8,right:8),child:TextField(controller:_dAwd[i],style:kFieldStyle,decoration:kDec())),
+            Padding(padding:const EdgeInsets.only(bottom:8,right:8),child:TextField(controller:_dDt[i],readOnly:true,style:kFieldStyle,onTap:()=>_pd(_dDt[i]),
+                decoration:kDec().copyWith(suffixIcon:const Icon(Icons.calendar_today_outlined,size:14)))),
+            Padding(padding:const EdgeInsets.only(bottom:8),child:DropdownButtonFormField<String>(value:_dEnt[i],isExpanded:true,
+                style:kFieldStyle.copyWith(color:kInk),items:kEntryColour.map((s)=>DropdownMenuItem(value:s,child:Text(s))).toList(),
+                onChanged:(v)=>setState(()=>_dEnt[i]=v))),
+          ]),
+        ])),
+      const SizedBox(height:8),
+      BipFooter(isEditing:widget.record!=null,isSaving:_saving,onSave:_save,onDelete:_delete,onClear:_clear,
+        onFind:()=>showSnack(context,'Use the filter panel on the right.'),
+        onPrint:()=>showSnack(context,'Print: coming soon.'),onExit:(){}),
+    ]);
+  }
+}
