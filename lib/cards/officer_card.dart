@@ -48,8 +48,7 @@ class _OfficerCardState extends State<OfficerCard> {
   final _doc = TextEditingController();
   final _dor = TextEditingController();
   final _dom = TextEditingController();
-  final _tos = TextEditingController();
-  final _sos = TextEditingController();
+  String? _domicile;
   String? _rank, _bloodGp, _status;
   String? _photoPath;
 
@@ -102,7 +101,7 @@ class _OfficerCardState extends State<OfficerCard> {
   void dispose() {
     for (final c in [_icNo,_name,_cdaAc,_iCard,_bDay,_mAnn,_honours,_medCat,
           _diag,_dueOn,_presAddr,_permtAddr,_teleNos,_emailIds,
-          _dob,_doc,_dor,_dom,_tos,_sos,_wife,_wifeBday,
+          _dob,_doc,_dor,_dom,_wife,_wifeBday,
           _cYo,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cPwt,_cJc,_cSc,_cCdo,
           _cQm,_cTac,_cRcl,_cRso,_cPt,_cDssc,_cBsw,_cOth,
           _pLt,_pCapt,_pMaj,_pLtCol,_pCol,_pBrig,_pMajGen,_pLtGen,_cmdF,_cmdT]) {
@@ -120,7 +119,7 @@ class _OfficerCardState extends State<OfficerCard> {
     _presAddr.text=r.presentAddress??''; _permtAddr.text=r.permtAddress??'';
     _teleNos.text=r.teleNos??''; _emailIds.text=r.emailIds??'';
     _dob.text=r.dob??''; _doc.text=r.doc??''; _dor.text=r.dor??'';
-    _dom.text=r.dom??''; _tos.text=r.tos??''; _sos.text=r.sos??'';
+    _dom.text=r.dom??'';
     _wife.text=r.wifeName??''; _wifeBday.text=r.wifeBday??'';
     _cYo.text=r.cYo??''; _cMmg.text=r.cMmgAgl??''; _cMor.text=r.cMorO??'';
     _cSnip.text=r.cSniper??''; _cAdp.text=r.cAdp??''; _cAtgm.text=r.cAtgm??'';
@@ -140,6 +139,7 @@ class _OfficerCardState extends State<OfficerCard> {
     for (int i=0;i<4;i++) { _svF[i].text=svf[i]??''; _svT[i].text=svt[i]??''; }
     setState(() {
       _rank=r.rank; _bloodGp=r.bloodGp; _status=r.status; _photoPath=r.photoPath;
+      _domicile=r.domicile;
       _chSex[0]=r.ch1Sex; _chSex[1]=r.ch2Sex; _chSex[2]=r.ch3Sex; _chSex[3]=r.ch4Sex;
     });
   }
@@ -147,7 +147,7 @@ class _OfficerCardState extends State<OfficerCard> {
   void _clear() {
     for (final c in [_icNo,_name,_cdaAc,_iCard,_bDay,_mAnn,_honours,_medCat,
           _diag,_dueOn,_presAddr,_permtAddr,_teleNos,_emailIds,
-          _dob,_doc,_dor,_dom,_tos,_sos,_wife,_wifeBday,
+          _dob,_doc,_dor,_dom,_wife,_wifeBday,
           _cYo,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cPwt,_cJc,_cSc,_cCdo,
           _cQm,_cTac,_cRcl,_cRso,_cPt,_cDssc,_cBsw,_cOth,
           _pLt,_pCapt,_pMaj,_pLtCol,_pCol,_pBrig,_pMajGen,_pLtGen,_cmdF,_cmdT]) {
@@ -155,7 +155,7 @@ class _OfficerCardState extends State<OfficerCard> {
     }
     for (final c in [..._chName,..._chDob,..._svF,..._svT]) c.clear();
     setState(() {
-      _rank=null; _bloodGp=null; _status=null; _photoPath=null;
+      _rank=null; _bloodGp=null; _status=null; _photoPath=null; _domicile=null;
       for (int i=0;i<4;i++) _chSex[i]=null;
     });
   }
@@ -165,7 +165,7 @@ class _OfficerCardState extends State<OfficerCard> {
         subCategory: widget.subCategory, id: widget.record?.id);
     m.icNo=_icNo.text.trim(); m.rank=_rank; m.name=_name.text.trim();
     m.bloodGp=_bloodGp; m.dob=_dob.text; m.doc=_doc.text; m.dor=_dor.text;
-    m.dom=_dom.text; m.tos=_tos.text; m.sos=_sos.text;
+    m.dom=_dom.text; m.domicile=_domicile;
     m.cdaAcNo=_cdaAc.text.trim(); m.iCardNo=_iCard.text.trim();
     m.bDay=_bDay.text; m.mAnn=_mAnn.text;
     m.honoursAwards=_honours.text.trim(); m.medCat=_medCat.text.trim();
@@ -297,7 +297,7 @@ class _OfficerCardState extends State<OfficerCard> {
             _dd('Blood Gp', _bloodGp, kBlood, (v)=>setState(()=>_bloodGp=v), w:120),
             _fDate('DOB', _dob, w:150), _fDate('DOC', _doc, w:150),
             _fDate('DOR', _dor, w:150), _fDate('DOM', _dom, w:150),
-            _fDate('TOS', _tos, w:150), _fDate('SOS', _sos, w:150),
+            _dd('Domicile', _domicile, kDomicile, (v)=>setState(()=>_domicile=v), w:150),
             _f('CDA (O) A/C No', _cdaAc, w:200), _f('I Card No', _iCard, w:170),
             _fDate('B. Day', _bDay, w:150), _fDate('M. Ann', _mAnn, w:150),
             _f('Med Cat', _medCat, w:140), _f('Diag', _diag, w:200),
@@ -366,7 +366,7 @@ class _OfficerCardState extends State<OfficerCard> {
       columnWidths: const {0: FlexColumnWidth(3), 1: FlexColumnWidth(1), 2: FlexColumnWidth(2)},
       children: [
         TableRow(children: [
-          _tHdr('Children Name'), _tHdr('Sex'), _tHdr('DOB'),
+          _tHdr('Children Name'), _tHdr('Gender'), _tHdr('DOB'),
         ]),
         for (int i = 0; i < 4; i++) TableRow(children: [
           Padding(padding: const EdgeInsets.only(bottom:8, right:10),

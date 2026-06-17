@@ -27,6 +27,8 @@ const kOfficerRanks = [
   'Lt Gen'
 ];
 const kJcoRanks = ['Sep', 'L/Nk', 'Nk', 'Hav', 'Nb Sub', 'Sub', 'Sub Maj'];
+const kJcoOnlyRanks = ['Nb Sub', 'Sub', 'Sub Maj'];
+const kOrOnlyRanks = ['Sep', 'L/Nk', 'Nk', 'Hav'];
 const kBlood = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const kSex = ['M', 'F'];
 const kYesNo = ['Yes', 'No'];
@@ -371,7 +373,6 @@ const kCourseGrade = ['-', 'AX(I)', 'AX'];
 const kLeaveTypes = [
   'Annual Leave',
   'Casual Leave',
-  'Furlough',
   'Sick Leave',
   'Maternity',
   'Paternity',
@@ -400,6 +401,7 @@ class NomSub {
   static const o30 = 'nom_o30';
   static const o40 = 'nom_o40';
   static const o50 = 'nom_o50';
+  static const bloodGroup = 'nom_blood';
   static String label(String s) {
     const m = {
       'nom_officers': 'Officers',
@@ -413,7 +415,8 @@ class NomSub {
       'nom_u30': 'Under 30 Yrs',
       'nom_o30': 'Over 30 Yrs',
       'nom_o40': 'Over 40 Yrs',
-      'nom_o50': 'Over 50 Yrs'
+      'nom_o50': 'Over 50 Yrs',
+      'nom_blood': 'Blood Group'
     };
     return m[s] ?? s;
   }
@@ -438,6 +441,7 @@ class CrsSub {
   static const pt = 'crs_pt';
   static const tpt = 'crs_tpt';
   static const misc = 'crs_misc';
+  static const bsw = 'crs_bsw';
   // DB column for each
   static String dbCol(String s) {
     const m = {
@@ -457,7 +461,8 @@ class CrsSub {
       'crs_pc': 'c_pc',
       'crs_pt': 'c_pt',
       'crs_tpt': 'c_tpt',
-      'crs_misc': 'c_misc'
+      'crs_misc': 'c_misc',
+      'crs_bsw': 'c_bsw'
     };
     return m[s] ?? 'c_misc';
   }
@@ -481,7 +486,8 @@ class CrsSub {
       'crs_pc': 'PC',
       'crs_pt': 'PT',
       'crs_tpt': 'TPT',
-      'crs_misc': 'Misc'
+      'crs_misc': 'Misc',
+      'crs_bsw': 'BSW'
     };
     return m[s] ?? s;
   }
@@ -503,7 +509,8 @@ class CrsSub {
     pc,
     pt,
     tpt,
-    misc
+    misc,
+    bsw
   ];
 }
 
@@ -531,7 +538,6 @@ class LeaveSub {
   static const all = 'lv_all';
   static const annual = 'lv_annual';
   static const casual = 'lv_casual';
-  static const furlough = 'lv_furlough';
   static const sick = 'lv_sick';
   static const maternity = 'lv_mat';
   static const paternity = 'lv_pat';
@@ -540,7 +546,6 @@ class LeaveSub {
     all,
     annual,
     casual,
-    furlough,
     sick,
     maternity,
     paternity,
@@ -551,7 +556,6 @@ class LeaveSub {
       'lv_all': 'All Leaves',
       'lv_annual': 'Annual Leave',
       'lv_casual': 'Casual Leave',
-      'lv_furlough': 'Furlough',
       'lv_sick': 'Sick Leave',
       'lv_mat': 'Maternity',
       'lv_pat': 'Paternity',
@@ -564,7 +568,6 @@ class LeaveSub {
     const m = {
       'lv_annual': 'Annual Leave',
       'lv_casual': 'Casual Leave',
-      'lv_furlough': 'Furlough',
       'lv_sick': 'Sick Leave',
       'lv_mat': 'Maternity',
       'lv_pat': 'Paternity',
@@ -576,45 +579,80 @@ class LeaveSub {
 
 // ── Health sub-heading constants ───────────────────────────────────────────
 class HealthSub {
-  static const all = 'hl_all';
-  static const a1 = 'hl_a1';
-  static const a2 = 'hl_a2';
-  static const a3 = 'hl_a3';
-  static const b1 = 'hl_b1';
-  static const b2 = 'hl_b2';
-  static const c1 = 'hl_c1';
-  static const c2 = 'hl_c2';
-  static const cee = 'hl_cee';
-  static const allSubs = [all, a1, a2, a3, b1, b2, c1, c2, cee];
+  static const coyA = 'hl_coy_a';
+  static const coyB = 'hl_coy_b';
+  static const coyC = 'hl_coy_c';
+  static const coyD = 'hl_coy_d';
+  static const sp = 'hl_sp';
+  static const hq = 'hl_hq';
+  static const tempLmc = 'hl_temp';
+  static const permtLmc = 'hl_permt';
+  static const allSubs = [coyA, coyB, coyC, coyD, sp, hq, tempLmc, permtLmc];
   static String label(String s) {
     const m = {
-      'hl_all': 'All Records',
-      'hl_a1': 'A1',
-      'hl_a2': 'A2',
-      'hl_a3': 'A3',
-      'hl_b1': 'B1',
-      'hl_b2': 'B2',
-      'hl_c1': 'C1',
-      'hl_c2': 'C2',
-      'hl_cee': 'CEE'
+      'hl_coy_a': 'Coy A',
+      'hl_coy_b': 'Coy B',
+      'hl_coy_c': 'Coy C',
+      'hl_coy_d': 'Coy D',
+      'hl_sp': 'SP',
+      'hl_hq': 'HQ',
+      'hl_temp': 'Temp LMC',
+      'hl_permt': 'Permt LMC'
     };
     return m[s] ?? s;
   }
 
-  static String? dbVal(String s) {
+  // Maps a sub-heading key to the value stored in health_records.category
+  static String dbVal(String s) {
     const m = {
-      'hl_a1': 'A1',
-      'hl_a2': 'A2',
-      'hl_a3': 'A3',
-      'hl_b1': 'B1',
-      'hl_b2': 'B2',
-      'hl_c1': 'C1',
-      'hl_c2': 'C2',
-      'hl_cee': 'CEE'
+      'hl_coy_a': 'A',
+      'hl_coy_b': 'B',
+      'hl_coy_c': 'C',
+      'hl_coy_d': 'D',
+      'hl_sp': 'SP',
+      'hl_hq': 'HQ',
+      'hl_temp': 'Temp',
+      'hl_permt': 'Permt'
     };
-    return m[s];
+    return m[s] ?? s;
   }
 }
+
+// ── Health record category options (admin entry dropdown) ─────────────────
+const kHealthCategory = ['A', 'B', 'C', 'D', 'SP', 'HQ', 'Temp', 'Permt'];
+String healthCategoryLabel(String v) {
+  const m = {
+    'A': 'Coy A',
+    'B': 'Coy B',
+    'C': 'Coy C',
+    'D': 'Coy D',
+    'SP': 'SP',
+    'HQ': 'HQ',
+    'Temp': 'Temp LMC',
+    'Permt': 'Permt LMC'
+  };
+  return m[v] ?? v;
+}
+
+// True when the category is a normal company (Weight Record form),
+// false when it's Temp/Permt LMC (diagnosis-style form).
+bool isWeightCategory(String? v) => v != null && !['Temp', 'Permt'].contains(v);
+
+const kWeightClass = ['Normal', 'Overweight', 'Obese', 'Underweight'];
+const kMonths = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec'
+];
 
 // ── ERE sub-heading constants ──────────────────────────────────────────────
 class EreSub {

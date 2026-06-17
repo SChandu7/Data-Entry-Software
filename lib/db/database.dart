@@ -32,7 +32,7 @@ class AppDatabase {
     final path = await _dbPath;
     return databaseFactory.openDatabase(path,
         options: OpenDatabaseOptions(
-            version: 2, onCreate: _create, onUpgrade: _upgrade));
+            version: 5, onCreate: _create, onUpgrade: _upgrade));
   }
 
   // ── Create v2 schema from scratch ────────────────────────────────────────
@@ -106,6 +106,53 @@ class AppDatabase {
       await db.execute(_healthDDL);
       await db.execute(_outStrDDL);
     }
+    if (oldV < 3) {
+      // Add BSW course columns to JCO/OR
+      for (final col in [
+        'ALTER TABLE jco_or ADD COLUMN c_bsw TEXT',
+        'ALTER TABLE jco_or ADD COLUMN c_bsw_g TEXT',
+      ]) {
+        try {
+          await db.execute(col);
+        } catch (_) {}
+      }
+      // Migrate old jco_present records → split into JCO / OR by rank
+      try {
+        await db.execute("UPDATE jco_or SET sub_cat='jco_present_jco' "
+            "WHERE sub_cat='jco_present' AND rank IN ('Nb Sub','Sub','Sub Maj')");
+        await db.execute("UPDATE jco_or SET sub_cat='jco_present_or' "
+            "WHERE sub_cat='jco_present'");
+      } catch (_) {}
+    }
+    if (oldV < 4) {
+      // Health: replace med-cat-class grouping with Coy/Temp/Permt category
+      for (final col in [
+        'ALTER TABLE health_records ADD COLUMN category TEXT',
+        'ALTER TABLE health_records ADD COLUMN med_cat_detail TEXT',
+      ]) {
+        try {
+          await db.execute(col);
+        } catch (_) {}
+      }
+    }
+    if (oldV < 5) {
+      // Health: Weight Record fields (Coy A/B/C/D/SP/HQ entries)
+      for (final col in [
+        'ALTER TABLE health_records ADD COLUMN ht TEXT',
+        'ALTER TABLE health_records ADD COLUMN ibw TEXT',
+        'ALTER TABLE health_records ADD COLUMN abw TEXT',
+        'ALTER TABLE health_records ADD COLUMN pct10 TEXT',
+        'ALTER TABLE health_records ADD COLUMN bmi TEXT',
+        'ALTER TABLE health_records ADD COLUMN weight_class TEXT',
+        'ALTER TABLE health_records ADD COLUMN age TEXT',
+        'ALTER TABLE health_records ADD COLUMN w_month TEXT',
+        'ALTER TABLE health_records ADD COLUMN w_value TEXT',
+      ]) {
+        try {
+          await db.execute(col);
+        } catch (_) {}
+      }
+    }
   }
 
   // ── DDL strings ───────────────────────────────────────────────────────────
@@ -163,11 +210,11 @@ class AppDatabase {
       c_sec TEXT, c_mmg TEXT, c_mor TEXT, c_snip TEXT, c_adp TEXT,
       c_atgm TEXT, c_drill TEXT, c_bmic TEXT, c_uei TEXT, c_cdo TEXT,
       c_qm TEXT, c_rsi TEXT, c_jlc TEXT, c_pc TEXT, c_pt TEXT,
-      c_tpt TEXT, c_misc TEXT,
+      c_tpt TEXT, c_misc TEXT, c_bsw TEXT,
       c_sec_g TEXT, c_mmg_g TEXT, c_mor_g TEXT, c_snip_g TEXT, c_adp_g TEXT,
       c_atgm_g TEXT, c_drill_g TEXT, c_bmic_g TEXT, c_uei_g TEXT, c_cdo_g TEXT,
       c_qm_g TEXT, c_rsi_g TEXT, c_jlc_g TEXT, c_pc_g TEXT, c_pt_g TEXT,
-      c_tpt_g TEXT, c_misc_g TEXT,
+      c_tpt_g TEXT, c_misc_g TEXT, c_bsw_g TEXT,
       e_mr1 TEXT, e_mr2 TEXT, e_mr3 TEXT,
       e_ace1 TEXT, e_ace2 TEXT, e_ace3 TEXT, e_aec3 TEXT,
       e_ttt1 TEXT, e_ttt2 TEXT, e_ttt3 TEXT,
@@ -204,9 +251,11 @@ class AppDatabase {
   static const _healthDDL = '''
     CREATE TABLE IF NOT EXISTS health_records (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      army_no TEXT NOT NULL, med_cat TEXT, diag TEXT,
-      hospital TEXT, board_dt TEXT, due_on TEXT,
-      remarks TEXT, created_at TEXT
+      army_no TEXT NOT NULL, category TEXT, med_cat TEXT, med_cat_detail TEXT, diag TEXT,
+      hospital TEXT, board_dt TEXT, due_on TEXT, remarks TEXT,
+      ht TEXT, ibw TEXT, abw TEXT, pct10 TEXT, bmi TEXT, weight_class TEXT, age TEXT,
+      w_month TEXT, w_value TEXT,
+      created_at TEXT
     )''';
 
   static const _outStrDDL = '''
@@ -469,16 +518,14 @@ class AppDatabase {
       'off_retired': q(await db.rawQuery(
           "SELECT COUNT(*) FROM officers WHERE sub_cat='off_retired'")),
       'off_total': q(await db.rawQuery("SELECT COUNT(*) FROM officers")),
-      'jco_present': q(await db
-          .rawQuery("SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present'")),
+      'jco_present_jco': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_jco'")),
+      'jco_present_or': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_or'")),
       'jco_on_ere': q(await db
           .rawQuery("SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_on_ere'")),
       'jco_retired': q(await db
           .rawQuery("SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_retired'")),
-      'jco_short': q(await db
-          .rawQuery("SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_short'")),
-      'jco_new_entry': q(await db.rawQuery(
-          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_new_entry'")),
       'jco_total': q(await db.rawQuery("SELECT COUNT(*) FROM jco_or")),
       'leave_today': q(await db.rawQuery("SELECT COUNT(*) FROM leave_records")),
       'ere_total': q(await db.rawQuery("SELECT COUNT(*) FROM ere_records")),
@@ -515,12 +562,14 @@ class AppDatabase {
     ''');
   }
 
-  Future<List<Map<String, dynamic>>> getHealthReport({String? medCat}) async {
+  Future<List<Map<String, dynamic>>> getHealthReport({String? category}) async {
     final db = await database;
-    final where = medCat != null ? "WHERE hr.med_cat='$medCat'" : '';
+    final where = category != null ? "WHERE hr.category='$category'" : '';
     return db.rawQuery('''
-      SELECT hr.id, hr.army_no, hr.med_cat, hr.diag, hr.hospital,
-             hr.board_dt, hr.due_on, hr.remarks, hr.created_at,
+      SELECT hr.id, hr.army_no, hr.category, hr.med_cat, hr.med_cat_detail, hr.diag, hr.hospital,
+             hr.board_dt, hr.due_on, hr.remarks,
+             hr.ht, hr.ibw, hr.abw, hr.pct10, hr.bmi, hr.weight_class, hr.age,
+             hr.w_month, hr.w_value, hr.created_at,
              COALESCE(jo.name,'—') as name, COALESCE(jo.rank,'') as rank,
              COALESCE(jo.coy,'') as coy
       FROM health_records hr

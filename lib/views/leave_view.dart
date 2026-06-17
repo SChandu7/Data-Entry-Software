@@ -247,7 +247,7 @@ class _LeaveViewState extends State<LeaveView> {
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600)),
-                                        ])))))))
+                                        ]))))))),
       ]);
 
   Widget _th(String t) => Padding(

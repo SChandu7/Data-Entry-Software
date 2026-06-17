@@ -18,14 +18,17 @@ class _NominalViewState extends State<NominalView> {
   final _db = AppDatabase.instance;
   List<Map<String, String>> _rows = [];
   bool _loading = true;
+  String? _selectedBlood; // used only when subKey == NomSub.bloodGroup
 
   bool get _isOfficerType => widget.subKey == NomSub.officers;
   bool get _isAgeBased =>
       [NomSub.u30, NomSub.o30, NomSub.o40, NomSub.o50].contains(widget.subKey);
   bool get _isJcoType => widget.subKey == NomSub.jcos;
+  bool get _isBloodGroup => widget.subKey == NomSub.bloodGroup;
 
-  String get _title =>
-      'NOMINAL ROLL — ${NomSub.label(widget.subKey).toUpperCase()}';
+  String get _title => _isBloodGroup
+      ? 'NOMINAL ROLL — BLOOD GROUP${_selectedBlood != null ? " : $_selectedBlood" : ""}'
+      : 'NOMINAL ROLL — ${NomSub.label(widget.subKey).toUpperCase()}';
 
   @override
   void initState() { super.initState(); _load(); }
@@ -33,7 +36,10 @@ class _NominalViewState extends State<NominalView> {
   @override
   void didUpdateWidget(NominalView o) {
     super.didUpdateWidget(o);
-    if (o.subKey != widget.subKey) _load();
+    if (o.subKey != widget.subKey) {
+      _selectedBlood = null;
+      _load();
+    }
   }
 
   Future<void> _load() async {
@@ -41,7 +47,18 @@ class _NominalViewState extends State<NominalView> {
     List<Map<String, String>> rows = [];
     int sno = 1;
 
-    if (_isOfficerType) {
+    if (_isBloodGroup) {
+      // JCO/OR only, filtered by selected blood group (if any chosen)
+      if (_selectedBlood != null) {
+        final list = await _db.queryJco(bloodGp: _selectedBlood);
+        for (final r in list) {
+          rows.add({'S/No': '$sno', 'Army No': r.armyNo ?? '-',
+            'Rank': r.rank ?? '-', 'Name': r.name ?? '-',
+            'Coy': r.coy ?? '-', 'Blood Gp': r.bloodGp ?? '-', 'Remarks': ''});
+          sno++;
+        }
+      }
+    } else if (_isOfficerType) {
       final list = await _db.queryOfficers();
       for (final r in list) {
         rows.add({'S/No': '$sno', 'IC No': r.icNo ?? '-',
@@ -102,39 +119,48 @@ class _NominalViewState extends State<NominalView> {
     if (mounted) setState(() { _rows = rows; _loading = false; });
   }
 
+  void _onBloodSelected(String? b) {
+    setState(() => _selectedBlood = b);
+    _load();
+  }
+
   List<String> get _headers =>
       _rows.isEmpty ? [] : _rows.first.keys.toList();
 
   Future<void> _print() async {
-    await Printing.layoutPdf(onLayout: (_) async {
-      final pdf = pw.Document();
-      pdf.addPage(pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
-        build: (ctx) => [
-          pw.Center(child: pw.Text(_title,
-              style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold))),
-          pw.SizedBox(height: 4),
-          pw.Center(child: pw.Text(
-              DateFormat('dd MMM yyyy').format(DateTime.now()),
-              style: const pw.TextStyle(fontSize: 10))),
-          pw.SizedBox(height: 12),
-          if (_rows.isNotEmpty)
-            pw.TableHelper.fromTextArray(
-              headers: _headers,
-              data: _rows.map((r) => _headers.map((h) => r[h] ?? '').toList()).toList(),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
-              cellStyle: const pw.TextStyle(fontSize: 9),
-              headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-              cellHeight: 22,
-            ),
-          pw.SizedBox(height: 10),
-          pw.Text('Total: ${_rows.length}',
-              style: const pw.TextStyle(fontSize: 10)),
-        ],
-      ));
-      return pdf.save();
-    });
+    try {
+      await Printing.layoutPdf(onLayout: (_) async {
+        final pdf = pw.Document();
+        pdf.addPage(pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(28),
+          build: (ctx) => [
+            pw.Center(child: pw.Text(_title,
+                style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold))),
+            pw.SizedBox(height: 4),
+            pw.Center(child: pw.Text(
+                DateFormat('dd MMM yyyy').format(DateTime.now()),
+                style: const pw.TextStyle(fontSize: 10))),
+            pw.SizedBox(height: 12),
+            if (_rows.isNotEmpty)
+              pw.TableHelper.fromTextArray(
+                headers: _headers,
+                data: _rows.map((r) => _headers.map((h) => r[h] ?? '').toList()).toList(),
+                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9),
+                cellStyle: const pw.TextStyle(fontSize: 9),
+                headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
+                cellHeight: 22,
+              ),
+            pw.SizedBox(height: 10),
+            pw.Text('Total: ${_rows.length}',
+                style: const pw.TextStyle(fontSize: 10)),
+          ],
+        ));
+        return pdf.save();
+      });
+    } catch (e) {
+      if (mounted) showSnack(context, 'Print failed: $e', error: true);
+    }
   }
 
   @override
@@ -160,12 +186,35 @@ class _NominalViewState extends State<NominalView> {
           ),
         ]),
       ),
+      // ── Blood Group internal selector ─────────────────────────────────────
+      if (_isBloodGroup) Container(
+        width: double.infinity, color: kSurface,
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        decoration: const BoxDecoration(
+            border: Border(bottom: BorderSide(color: kBorder))),
+        child: Row(children: [
+          const Text('SELECT BLOOD GROUP', style: kLabelStyle),
+          const SizedBox(width: 12),
+          SizedBox(width: 160, child: DropdownButtonFormField<String>(
+            value: _selectedBlood, isExpanded: true,
+            style: kFieldStyle.copyWith(color: kInk),
+            decoration: kDec('Choose...'),
+            items: kBlood.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+            onChanged: _onBloodSelected,
+          )),
+          const SizedBox(width: 8),
+          const Text('(JCOs / OR only)', style: TextStyle(fontSize: 11, color: kInkSoft)),
+        ]),
+      ),
       // ── Document-page body ───────────────────────────────────────────────
       Expanded(child: Container(
         color: const Color(0xFFD6D8DB), // grey "desktop" background
         child: _loading
             ? const Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(
+            : (_isBloodGroup && _selectedBlood == null)
+                ? const Center(child: Text('Select a blood group above to view records.',
+                    style: TextStyle(color: kInkSoft, fontSize: 13)))
+                : SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 40),
                 child: Center(child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 860),
@@ -219,6 +268,7 @@ class _NominalViewState extends State<NominalView> {
         case 'Age':    colWidths[i] = const FixedColumnWidth(70); break;
         case 'Status': colWidths[i] = const FixedColumnWidth(120); break;
         case 'Sub-Cat':colWidths[i] = const FixedColumnWidth(140); break;
+        case 'Blood Gp':colWidths[i] = const FixedColumnWidth(90); break;
         case 'Remarks':colWidths[i] = const FlexColumnWidth(); break;
         default:       colWidths[i] = const FlexColumnWidth(); break;
       }

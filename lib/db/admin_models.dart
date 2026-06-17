@@ -28,15 +28,22 @@ class EreRecord {
 
 class HealthRecord {
   int? id; String armyNo;
-  String? medCat, diag, hospital, boardDt, dueOn, remarks, createdAt;
+  String? category, medCat, medCatDetail, diag, hospital, boardDt, dueOn, remarks, createdAt;
+  // Weight Record fields (used when category is a Coy, not Temp/Permt LMC)
+  String? ht, ibw, abw, pct10, bmi, weightClass, age, wMonth, wValue;
   HealthRecord({required this.armyNo, this.id});
   Map<String,dynamic> toMap()=>{
-    'id':id,'army_no':armyNo,'med_cat':medCat,'diag':diag,
-    'hospital':hospital,'board_dt':boardDt,'due_on':dueOn,
-    'remarks':remarks,'created_at':createdAt};
+    'id':id,'army_no':armyNo,'category':category,'med_cat':medCat,'med_cat_detail':medCatDetail,
+    'diag':diag,'hospital':hospital,'board_dt':boardDt,'due_on':dueOn,
+    'remarks':remarks,'ht':ht,'ibw':ibw,'abw':abw,'pct10':pct10,'bmi':bmi,
+    'weight_class':weightClass,'age':age,'w_month':wMonth,'w_value':wValue,
+    'created_at':createdAt};
   factory HealthRecord.fromMap(Map<String,dynamic> m)=>HealthRecord(armyNo:m['army_no']??'',id:m['id'])
-    ..medCat=m['med_cat']..diag=m['diag']..hospital=m['hospital']
-    ..boardDt=m['board_dt']..dueOn=m['due_on']..remarks=m['remarks']..createdAt=m['created_at'];
+    ..category=m['category']..medCat=m['med_cat']..medCatDetail=m['med_cat_detail']..diag=m['diag']
+    ..hospital=m['hospital']..boardDt=m['board_dt']..dueOn=m['due_on']..remarks=m['remarks']
+    ..ht=m['ht']..ibw=m['ibw']..abw=m['abw']..pct10=m['pct10']..bmi=m['bmi']
+    ..weightClass=m['weight_class']..age=m['age']..wMonth=m['w_month']..wValue=m['w_value']
+    ..createdAt=m['created_at'];
 }
 
 class OutStrengthRecord {

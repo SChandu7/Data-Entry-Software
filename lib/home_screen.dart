@@ -7,8 +7,6 @@ import 'cards/officer_card.dart';
 import 'cards/jco_present_card.dart';
 import 'cards/jco_on_ere_card.dart';
 import 'cards/jco_retired_card.dart';
-import 'cards/jco_short_card.dart';
-import 'cards/jco_new_entry_card.dart';
 import 'views/nominal_view.dart';
 import 'views/courses_view.dart';
 import 'views/education_view.dart';
@@ -57,11 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
           SubCat.offRetired
         ],
         'jco': [
-          SubCat.jcoPresent,
+          SubCat.jcoPresentJco,
+          SubCat.jcoPresentOr,
           SubCat.jcoOnEre,
-          SubCat.jcoRetired,
-          SubCat.jcoShort,
-          SubCat.jcoNewEntry
+          SubCat.jcoRetired
         ],
         'nominal': [
           NomSub.officers,
@@ -75,7 +72,8 @@ class _HomeScreenState extends State<HomeScreen> {
           NomSub.u30,
           NomSub.o30,
           NomSub.o40,
-          NomSub.o50
+          NomSub.o50,
+          NomSub.bloodGroup
         ],
         'courses': CrsSub.all,
         'education': kEducation,
@@ -208,13 +206,13 @@ class _HomeScreenState extends State<HomeScreen> {
       color: kSlate,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(children: [
-        Container(
+       Center( Container(
             width: 32,
             height: 32,
             decoration: BoxDecoration(
                 color: Colors.white12, borderRadius: BorderRadius.circular(6)),
             child: const Icon(Icons.military_tech_outlined,
-                color: Colors.white, size: 18)),
+                color: Colors.white, size: 18)),),
         const SizedBox(width: 10),
         const Text('BIP',
             style: TextStyle(
@@ -327,11 +325,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     // JCO/OR
     switch (_sub) {
-      case SubCat.jcoPresent:
+      case SubCat.jcoPresentJco:
         return JcoPresentCard(
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
-            onSaved: _onSaved);
+            onSaved: _onSaved,
+            subCategory: SubCat.jcoPresentJco,
+            ranks: kJcoOnlyRanks);
+      case SubCat.jcoPresentOr:
+        return JcoPresentCard(
+            key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
+            record: _editJco,
+            onSaved: _onSaved,
+            subCategory: SubCat.jcoPresentOr,
+            ranks: kOrOnlyRanks);
       case SubCat.jcoOnEre:
         return JcoOnEreCard(
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
@@ -339,16 +346,6 @@ class _HomeScreenState extends State<HomeScreen> {
             onSaved: _onSaved);
       case SubCat.jcoRetired:
         return JcoRetiredCard(
-            key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
-            record: _editJco,
-            onSaved: _onSaved);
-      case SubCat.jcoShort:
-        return JcoShortCard(
-            key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
-            record: _editJco,
-            onSaved: _onSaved);
-      case SubCat.jcoNewEntry:
-        return JcoNewEntryCard(
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
             onSaved: _onSaved);

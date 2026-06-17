@@ -177,7 +177,7 @@ class _DomicileViewState extends State<DomicileView> {
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600)),
-                                        ])))))))
+                                        ]))))))),
       ]);
 
   Widget _sec(String t) => Container(

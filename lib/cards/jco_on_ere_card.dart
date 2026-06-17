@@ -21,14 +21,14 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
   // Pers (On ERE specific: +sos, +returnDt, +personalProblem; -svcExtn, -aadhar, -email)
   final _armyNo=TextEditingController(); final _name=TextEditingController();
   final _dob=TextEditingController(); final _doe=TextEditingController();
-  final _dor=TextEditingController(); final _tos=TextEditingController();
-  final _sos=TextEditingController(); final _returnDt=TextEditingController();
+  final _dor=TextEditingController();
+  final _returnDt=TextEditingController();
   final _rrEre=TextEditingController(); final _icard=TextEditingController();
   final _honours=TextEditingController(); final _pan=TextEditingController();
-  final _caste=TextEditingController(); final _civEdn=TextEditingController();
+  final _civEdn=TextEditingController();
   final _medCat=TextEditingController(); final _persProblem=TextEditingController();
   final _diag=TextEditingController(); final _dueOn=TextEditingController();
-  String? _rank, _coy, _bloodGp, _photoPath;
+  String? _rank, _coy, _bloodGp, _photoPath, _domicile;
 
   // Kindred
   final _father=TextEditingController(); final _mother=TextEditingController();
@@ -57,7 +57,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
   final _cQm=TextEditingController(); final _cRsi=TextEditingController();
   final _cJlc=TextEditingController(); final _cPc=TextEditingController();
   final _cPt=TextEditingController(); final _cTpt=TextEditingController();
-  final _cMisc=TextEditingController();
+  final _cMisc=TextEditingController(); final _cBsw=TextEditingController();
 
   // Army Edn (+TTT-I/II/III for On ERE)
   String? _eMr1,_eMr2,_eMr3,_eAce1,_eAce2,_eAce3,_eAec3,_eTtt1,_eTtt2,_eTtt3;
@@ -94,12 +94,12 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
 
   @override
   void dispose() {
-    for(final c in [_armyNo,_name,_dob,_doe,_dor,_tos,_sos,_returnDt,_rrEre,_icard,
-        _honours,_pan,_caste,_civEdn,_medCat,_persProblem,_diag,_dueOn,
+    for(final c in [_armyNo,_name,_dob,_doe,_dor,_returnDt,_rrEre,_icard,
+        _honours,_pan,_civEdn,_medCat,_persProblem,_diag,_dueOn,
         _father,_mother,_wife,_nok,_singAcct,_singBank,_jntAcct,_jntBank,
         _hTele,_hVill,_hPost,_hToff,_hTeh,_hDist,_hState,_hPin,_hNrs,
         _cSec,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cDrill,_cBmic,_cUei,
-        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc,
+        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc,_cBsw,
         _pcUmm,_pcHav,_pcNb,_pLnk,_pNaik,_pHav,_pNbSub,_pSub,_pSubMaj,_pAcp]) c.dispose();
     for(final c in [..._chN,..._chD,..._ereN,..._ereF,..._ereT,..._dOff,..._dAwd,..._dDt]) c.dispose();
     super.dispose();
@@ -108,10 +108,10 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
   void _populate(JcoOrModel r) {
     _armyNo.text=r.armyNo??''; _name.text=r.name??'';
     _dob.text=r.dob??''; _doe.text=r.doe??''; _dor.text=r.dor??'';
-    _tos.text=r.tos??''; _sos.text=r.sos??''; _returnDt.text=r.returnDt??'';
+    _returnDt.text=r.returnDt??'';
     _rrEre.text=r.rrEreFmn??''; _icard.text=r.icardNo??'';
     _honours.text=r.honoursAwards??''; _pan.text=r.panCardNo??'';
-    _caste.text=r.caste??''; _civEdn.text=r.civEdn??''; _medCat.text=r.medCat??'';
+    _civEdn.text=r.civEdn??''; _medCat.text=r.medCat??'';
     _persProblem.text=r.personalProblem??''; _diag.text=r.diag??''; _dueOn.text=r.dueOn??'';
     _father.text=r.father??''; _mother.text=r.mother??'';
     _wife.text=r.wife??''; _nok.text=r.nextOfKin??'';
@@ -125,7 +125,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
     _cDrill.text=r.cDrill??'';_cBmic.text=r.cBmic??'';_cUei.text=r.cUei??'';
     _cCdo.text=r.cCdo??'';_cQm.text=r.cQm??'';_cRsi.text=r.cRsi??'';
     _cJlc.text=r.cJlc??'';_cPc.text=r.cPc??'';_cPt.text=r.cPt??'';
-    _cTpt.text=r.cTpt??'';_cMisc.text=r.cMisc??'';
+    _cTpt.text=r.cTpt??'';_cMisc.text=r.cMisc??'';_cBsw.text=r.cBsw??'';
     _pcUmm.text=r.pcUmmedwar??'';_pcHav.text=r.pcHav??'';_pcNb.text=r.pcNbSub??'';
     _pLnk.text=r.pLnk??'';_pNaik.text=r.pNaik??'';_pHav.text=r.pHav??'';
     _pNbSub.text=r.pNbSub??'';_pSub.text=r.pSub??'';_pSubMaj.text=r.pSubMaj??'';_pAcp.text=r.pAcp??'';
@@ -140,7 +140,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
     final de=[r.d1Ent,r.d2Ent,r.d3Ent,r.d4Ent,r.d5Ent];
     for(int i=0;i<5;i++){_dOff[i].text=do_[i]??'';_dAwd[i].text=da[i]??'';_dDt[i].text=dd[i]??'';}
     setState((){
-      _rank=r.rank;_coy=r.coy;_bloodGp=r.bloodGp;_photoPath=r.photoPath;
+      _rank=r.rank;_coy=r.coy;_bloodGp=r.bloodGp;_photoPath=r.photoPath;_domicile=r.domicile;
       _chS[0]=r.ch1Sex;_chS[1]=r.ch2Sex;_chS[2]=r.ch3Sex;_chS[3]=r.ch4Sex;
       _eMr1=r.eMr1;_eMr2=r.eMr2;_eMr3=r.eMr3;
       _eAce1=r.eAce1;_eAce2=r.eAce2;_eAce3=r.eAce3;_eAec3=r.eAec3;
@@ -151,16 +151,16 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
   }
 
   void _clear() {
-    for(final c in [_armyNo,_name,_dob,_doe,_dor,_tos,_sos,_returnDt,_rrEre,_icard,
-        _honours,_pan,_caste,_civEdn,_medCat,_persProblem,_diag,_dueOn,
+    for(final c in [_armyNo,_name,_dob,_doe,_dor,_returnDt,_rrEre,_icard,
+        _honours,_pan,_civEdn,_medCat,_persProblem,_diag,_dueOn,
         _father,_mother,_wife,_nok,_singAcct,_singBank,_jntAcct,_jntBank,
         _hTele,_hVill,_hPost,_hToff,_hTeh,_hDist,_hState,_hPin,_hNrs,
         _cSec,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cDrill,_cBmic,_cUei,
-        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc,
+        _cCdo,_cQm,_cRsi,_cJlc,_cPc,_cPt,_cTpt,_cMisc,_cBsw,
         _pcUmm,_pcHav,_pcNb,_pLnk,_pNaik,_pHav,_pNbSub,_pSub,_pSubMaj,_pAcp]) c.clear();
     for(final c in [..._chN,..._chD,..._ereN,..._ereF,..._ereT,..._dOff,..._dAwd,..._dDt]) c.clear();
     setState((){
-      _rank=null;_coy=null;_bloodGp=null;_photoPath=null;
+      _rank=null;_coy=null;_bloodGp=null;_photoPath=null;_domicile=null;
       for(int i=0;i<4;i++) _chS[i]=null;
       _eMr1=null;_eMr2=null;_eMr3=null;_eAce1=null;_eAce2=null;_eAce3=null;_eAec3=null;
       _eTtt1=null;_eTtt2=null;_eTtt3=null;
@@ -173,10 +173,10 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
     final m=JcoOrModel(subCategory:SubCat.jcoOnEre,id:widget.record?.id);
     m.armyNo=_armyNo.text.trim();m.rank=_rank;m.name=_name.text.trim();
     m.coy=_coy;m.dob=_dob.text;m.doe=_doe.text;m.dor=_dor.text;
-    m.tos=_tos.text;m.sos=_sos.text;m.returnDt=_returnDt.text;
+    m.returnDt=_returnDt.text;
     m.rrEreFmn=_rrEre.text.trim();m.icardNo=_icard.text.trim();
     m.honoursAwards=_honours.text.trim();m.panCardNo=_pan.text.trim();
-    m.bloodGp=_bloodGp;m.caste=_caste.text.trim();m.civEdn=_civEdn.text.trim();
+    m.bloodGp=_bloodGp;m.domicile=_domicile;m.civEdn=_civEdn.text.trim();
     m.medCat=_medCat.text.trim();m.personalProblem=_persProblem.text.trim();
     m.diag=_diag.text.trim();m.dueOn=_dueOn.text;m.photoPath=_photoPath;
     m.father=_father.text.trim();m.mother=_mother.text.trim();
@@ -194,7 +194,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
     m.cSniper=_cSnip.text;m.cAdp=_cAdp.text;m.cAtgm=_cAtgm.text;
     m.cDrill=_cDrill.text;m.cBmic=_cBmic.text;m.cUei=_cUei.text;
     m.cCdo=_cCdo.text;m.cQm=_cQm.text;m.cRsi=_cRsi.text;
-    m.cJlc=_cJlc.text;m.cPc=_cPc.text;m.cPt=_cPt.text;m.cTpt=_cTpt.text;m.cMisc=_cMisc.text;
+    m.cJlc=_cJlc.text;m.cPc=_cPc.text;m.cPt=_cPt.text;m.cTpt=_cTpt.text;m.cMisc=_cMisc.text;m.cBsw=_cBsw.text;
     m.eMr1=_eMr1;m.eMr2=_eMr2;m.eMr3=_eMr3;
     m.eAce1=_eAce1;m.eAce2=_eAce2;m.eAce3=_eAce3;m.eAec3=_eAec3;
     m.eTtt1=_eTtt1;m.eTtt2=_eTtt2;m.eTtt3=_eTtt3;
@@ -276,7 +276,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
 
   Widget _childTable()=>Table(
     columnWidths:const{0:FlexColumnWidth(3),1:FlexColumnWidth(1),2:FlexColumnWidth(2)},
-    children:[TableRow(children:[_tHdr('Name'),_tHdr('Sex'),_tHdr('DOB')]),
+    children:[TableRow(children:[_tHdr('Name'),_tHdr('Gender'),_tHdr('DOB')]),
       for(int i=0;i<4;i++) TableRow(children:[
         Padding(padding:const EdgeInsets.only(bottom:8,right:10),
             child:TextField(controller:_chN[i],style:kFieldStyle,decoration:kDec())),
@@ -319,12 +319,13 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
             _dd('Rank',_rank,kJcoRanks,(v)=>setState(()=>_rank=v),w:140),
             _f('Name',_name,w:290),
             _fDate('DOB',_dob,w:150),_fDate('DOE',_doe,w:150),_fDate('DOR',_dor,w:150),
-            _fDate('TOS',_tos,w:150),_fDate('SOS',_sos,w:150),_fDate('Return Dt',_returnDt,w:160),
+            _fDate('Return Dt',_returnDt,w:160),
             _dd('Coy',_coy,kCoys,(v)=>setState(()=>_coy=v),w:100),
             _f('RR/ERE/FMN',_rrEre,w:220),
             _f('ICard No',_icard,w:160),_f('PAN Card No',_pan,w:180),
             _dd('Blood GP',_bloodGp,kBlood,(v)=>setState(()=>_bloodGp=v),w:120),
-            _f('Caste',_caste,w:150),_f('Civ Edn',_civEdn,w:160),_f('Med Cat',_medCat,w:140),
+            _dd('Domicile',_domicile,kDomicile,(v)=>setState(()=>_domicile=v),w:150),
+            _f('Civ Edn',_civEdn,w:160),_f('Med Cat',_medCat,w:140),
             _f('Diag',_diag,w:200),_fDate('Due On',_dueOn,w:150),
             _f('Honours and Awards',_honours,w:440),_f('Personal Problem',_persProblem,w:440),
           ])),
@@ -354,7 +355,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
         _f('Sniper',_cSnip,w:140),_f('ADP',_cAdp,w:140),_f('ATGM',_cAtgm,w:140),_f('Drill',_cDrill,w:140),
         _f('BMIC',_cBmic,w:140),_f('UEI',_cUei,w:140),_f('CDO',_cCdo,w:140),
         _f('QM',_cQm,w:140),_f('RSI',_cRsi,w:140),_f('JLC',_cJlc,w:140),_f('PC',_cPc,w:140),
-        _f('PT',_cPt,w:140),_f('TPT',_cTpt,w:140),_f('Misc',_cMisc,w:140),
+        _f('PT',_cPt,w:140),_f('TPT',_cTpt,w:140),_f('BSW',_cBsw,w:140),_f('Misc',_cMisc,w:140),
       ])),
       CardSection(title:'Army Edn',child:Wrap(spacing:14,runSpacing:14,children:[
         _ednDd('MR-I',_eMr1,(v)=>setState(()=>_eMr1=v)),

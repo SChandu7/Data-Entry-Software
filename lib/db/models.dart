@@ -6,11 +6,10 @@ class SubCat {
   static const offExCos = 'off_ex_cos';
   static const offOtherUnit = 'off_other_unit';
   static const offRetired = 'off_retired';
-  static const jcoPresent = 'jco_present';
+  static const jcoPresentJco = 'jco_present_jco';
+  static const jcoPresentOr = 'jco_present_or';
   static const jcoOnEre = 'jco_on_ere';
   static const jcoRetired = 'jco_retired';
-  static const jcoShort = 'jco_short';
-  static const jcoNewEntry = 'jco_new_entry';
 
   static String label(String s) {
     const m = {
@@ -18,11 +17,10 @@ class SubCat {
       offExCos: 'Ex COs',
       offOtherUnit: 'Serving Other Unit',
       offRetired: 'Retd Officers',
-      jcoPresent: 'Present JCOs/OR',
+      jcoPresentJco: 'Present JCO',
+      jcoPresentOr: 'Present OR',
       jcoOnEre: 'On ERE',
       jcoRetired: 'Retd JCOs/OR',
-      jcoShort: 'Short',
-      jcoNewEntry: 'New Entry',
     };
     return m[s] ?? s;
   }
@@ -33,11 +31,10 @@ class SubCat {
       offExCos: 'DATA CARD : EX COs',
       offOtherUnit: 'DATA CARD : SERVING WITH OTHER UNIT',
       offRetired: 'DATA CARD : RETD OFFICERS',
-      jcoPresent: 'PRESENT JCOs/OR : DATA CARD',
+      jcoPresentJco: 'PRESENT JCO : DATA CARD',
+      jcoPresentOr: 'PRESENT OR : DATA CARD',
       jcoOnEre: 'JCOs OR (ON ERE) : DATA CARD',
       jcoRetired: 'RETD JCOs OR : DATA CARD',
-      jcoShort: 'JCOs/OR SHORT : DATA CARD',
-      jcoNewEntry: 'JCOs/OR : DATA CARD',
     };
     return m[s] ?? s;
   }
@@ -319,7 +316,7 @@ class JcoOrModel {
   String? homeTehsil, homeDistrict, homeState, homePin, homeNrs;
   // Courses
   String? cSecCdr, cMmgAgl, cMorJn, cSniper, cAdp, cAtgm, cDrill;
-  String? cBmic, cUei, cCdo, cQm, cRsi, cJlc, cPc, cPt, cTpt, cMisc;
+  String? cBmic, cUei, cCdo, cQm, cRsi, cJlc, cPc, cPt, cTpt, cMisc, cBsw;
   // Army Edn
   String? eMr1, eMr2, eMr3, eAce1, eAce2, eAce3, eAec3;
   String? eTtt1, eTtt2, eTtt3; // on_ere, retired
@@ -339,7 +336,17 @@ class JcoOrModel {
   String? d5Off, d5Awd, d5Dt, d5Ent;
   String? domicile;
   String? cSecCdrG, cMmgAglG, cMorJnG, cSniperG, cAdpG, cAtgmG, cDrillG;
-  String? cBmicG, cUeiG, cCdoG, cQmG, cRsiG, cJlcG, cPcG, cPtG, cTptG, cMiscG;
+  String? cBmicG,
+      cUeiG,
+      cCdoG,
+      cQmG,
+      cRsiG,
+      cJlcG,
+      cPcG,
+      cPtG,
+      cTptG,
+      cMiscG,
+      cBswG;
   String? createdAt, updatedAt;
 
   JcoOrModel({required this.subCategory, this.id});
@@ -436,6 +443,7 @@ class JcoOrModel {
         'c_pt': cPt,
         'c_tpt': cTpt,
         'c_misc': cMisc,
+        'c_bsw': cBsw,
         'e_mr1': eMr1,
         'e_mr2': eMr2,
         'e_mr3': eMr3,
@@ -505,6 +513,7 @@ class JcoOrModel {
         'c_pt_g': cPtG,
         'c_tpt_g': cTptG,
         'c_misc_g': cMiscG,
+        'c_bsw_g': cBswG,
       };
 
   factory JcoOrModel.fromMap(Map<String, dynamic> m) {
@@ -598,6 +607,7 @@ class JcoOrModel {
     j.cPt = m['c_pt'];
     j.cTpt = m['c_tpt'];
     j.cMisc = m['c_misc'];
+    j.cBsw = m['c_bsw'];
     j.eMr1 = m['e_mr1'];
     j.eMr2 = m['e_mr2'];
     j.eMr3 = m['e_mr3'];
@@ -667,6 +677,7 @@ class JcoOrModel {
     j.cPtG = m['c_pt_g'];
     j.cTptG = m['c_tpt_g'];
     j.cMiscG = m['c_misc_g'];
+    j.cBswG = m['c_bsw_g'];
     return j;
   }
 }

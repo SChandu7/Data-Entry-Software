@@ -270,11 +270,10 @@ class _FilterPanelState extends State<FilterPanel> {
         Expanded(child: _labelSearch('Army No / Name')),
         const SizedBox(width: 8),
         _dd('Sub-Category', _filterSubCat, [
-          SubCat.jcoPresent,
+          SubCat.jcoPresentJco,
+          SubCat.jcoPresentOr,
           SubCat.jcoOnEre,
-          SubCat.jcoRetired,
-          SubCat.jcoShort,
-          SubCat.jcoNewEntry
+          SubCat.jcoRetired
         ], (v) {
           setState(() => _filterSubCat = v);
           _load();

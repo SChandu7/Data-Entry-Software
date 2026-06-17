@@ -178,7 +178,7 @@ class _EducationViewState extends State<EducationView> {
                                               style: const TextStyle(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600)),
-                                        ])))))))
+                                        ]))))))),
       ]);
 
   Widget _secHead(String t) => Container(

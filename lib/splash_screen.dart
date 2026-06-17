@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
 
-// ── Replace with your actual image URLs ────────────────────────────────────
-const _emblemUrl =
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS393_22eG8-Ty3A7YK9qFQFwxxQkhVLJPxZA&s';
-const _personUrl =
-    'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR9Ys1oiWHvDhqxz19KEPfJMHGLb8Ce5QNlbA&s';
-// ───────────────────────────────────────────────────────────────────────────
+// CHANGE TO:
+const _emblemAsset = 'assets/logo.jpeg';
+const _personAsset = 'assets/co.jpeg';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -102,13 +99,11 @@ class SplashScreen extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: _emblemUrl == 'YOUR_EMBLEM_IMAGE_URL_HERE'
-                  ? _emblemPlaceholder()
-                  : Image.network(
-                      _emblemUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => _emblemPlaceholder(),
-                    ),
+              child: Image.asset(
+                _emblemAsset,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => _emblemPlaceholder(),
+              ),
             ),
           ),
 
@@ -154,13 +149,11 @@ class SplashScreen extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.antiAlias,
-              child: _personUrl == 'YOUR_OFFICER_PHOTO_URL_HERE'
-                  ? _personPlaceholder()
-                  : Image.network(
-                      _personUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _personPlaceholder(),
-                    ),
+              child: Image.asset(
+                _personAsset,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _personPlaceholder(),
+              ),
             ),
           ),
 
@@ -172,7 +165,7 @@ class SplashScreen extends StatelessWidget {
             child: Center(
               child: TextButton(
                 onPressed: () => Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  MaterialPageRoute(builder: (_) => HomeScreen()),
                 ),
                 style: TextButton.styleFrom(
                   foregroundColor: Colors.white,
