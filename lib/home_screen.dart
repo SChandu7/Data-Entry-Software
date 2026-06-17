@@ -162,27 +162,10 @@ class _HomeScreenState extends State<HomeScreen> {
           flex: 70,
           child: Container(
             color: kBg,
-            child: Column(children: [
-              Expanded(
-                  child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
-                child: _activeView(),
-              )),
-              BipFooter(
-                isEditing: _editOfficer != null || _editJco != null,
-                isSaving: false,
-                onSave: () {},
-                onDelete: () {},
-                onClear: () => setState(() {
-                  _editOfficer = null;
-                  _editJco = null;
-                }),
-                onFind: () =>
-                    showSnack(context, 'Use the filter panel on the right.'),
-                onPrint: () => showSnack(context, 'Print: coming soon.'),
-                onExit: _confirmExit,
-              ),
-            ]),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(18, 18, 18, 8),
+              child: _activeView(),
+            ),
           )),
       Container(width: 1, color: kBorder),
       SizedBox(
@@ -206,13 +189,21 @@ class _HomeScreenState extends State<HomeScreen> {
       color: kSlate,
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(children: [
-       Center( Container(
+        if (_editOfficer != null || _editJco != null)
+          Chip(
+              label: Text(
+                  'Editing: ${_editOfficer?.name ?? _editJco?.name ?? ''}',
+                  style: const TextStyle(fontSize: 12)),
+              backgroundColor: Colors.white12,
+              labelStyle: const TextStyle(color: Colors.white)),
+        const Spacer(),
+        Container(
             width: 32,
             height: 32,
             decoration: BoxDecoration(
                 color: Colors.white12, borderRadius: BorderRadius.circular(6)),
             child: const Icon(Icons.military_tech_outlined,
-                color: Colors.white, size: 18)),),
+                color: Colors.white, size: 18)),
         const SizedBox(width: 10),
         const Text('BIP',
             style: TextStyle(
@@ -223,16 +214,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 8),
         const Text('· Bn Information Package',
             style: TextStyle(color: Colors.white54, fontSize: 12)),
-        const Spacer(),
-        if (_editOfficer != null || _editJco != null)
-          Chip(
-              label: Text(
-                  'Editing: ${_editOfficer?.name ?? _editJco?.name ?? ''}',
-                  style: const TextStyle(fontSize: 12)),
-              backgroundColor: Colors.white12,
-              labelStyle: const TextStyle(color: Colors.white)),
       ]));
-
   // ── Category nav — FULL WIDTH stretched tabs ──────────────────────────────
   Widget _catNav() => Container(
       decoration: const BoxDecoration(
@@ -321,7 +303,8 @@ class _HomeScreenState extends State<HomeScreen> {
           key: ValueKey(_sub + (_editOfficer?.id?.toString() ?? 'new')),
           subCategory: _sub,
           record: _editOfficer,
-          onSaved: _onSaved);
+          onSaved: _onSaved,
+          onExit: _confirmExit);
 
     // JCO/OR
     switch (_sub) {
@@ -330,6 +313,7 @@ class _HomeScreenState extends State<HomeScreen> {
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
             onSaved: _onSaved,
+            onExit: _confirmExit,
             subCategory: SubCat.jcoPresentJco,
             ranks: kJcoOnlyRanks);
       case SubCat.jcoPresentOr:
@@ -337,18 +321,21 @@ class _HomeScreenState extends State<HomeScreen> {
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
             onSaved: _onSaved,
+            onExit: _confirmExit,
             subCategory: SubCat.jcoPresentOr,
             ranks: kOrOnlyRanks);
       case SubCat.jcoOnEre:
         return JcoOnEreCard(
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
-            onSaved: _onSaved);
+            onSaved: _onSaved,
+            onExit: _confirmExit);
       case SubCat.jcoRetired:
         return JcoRetiredCard(
             key: ValueKey(_sub + (_editJco?.id?.toString() ?? 'new')),
             record: _editJco,
-            onSaved: _onSaved);
+            onSaved: _onSaved,
+            onExit: _confirmExit);
     }
     return ComingSoon(label: _sub);
   }

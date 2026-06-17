@@ -32,7 +32,7 @@ class AppDatabase {
     final path = await _dbPath;
     return databaseFactory.openDatabase(path,
         options: OpenDatabaseOptions(
-            version: 5, onCreate: _create, onUpgrade: _upgrade));
+            version: 6, onCreate: _create, onUpgrade: _upgrade));
   }
 
   // ── Create v2 schema from scratch ────────────────────────────────────────
@@ -43,6 +43,10 @@ class AppDatabase {
     await db.execute(_ereDDL);
     await db.execute(_healthDDL);
     await db.execute(_outStrDDL);
+    await db.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_officers_icno ON officers(ic_no)');
+    await db.execute(
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_jco_or_armyno ON jco_or(army_no)');
   }
 
   // ── Upgrade v1 → v2: add new columns + new tables ────────────────────────
@@ -152,6 +156,21 @@ class AppDatabase {
           await db.execute(col);
         } catch (_) {}
       }
+    }
+    if (oldV < 6) {
+      // Enforce uniqueness on IC No / Army No at the database level.
+      // Wrapped in try/catch: if duplicate rows already exist from before
+      // this fix, index creation fails silently and the app keeps working —
+      // app-level duplicate checks (officerIcNoExists/jcoArmyNoExists) still
+      // protect new saves either way. Run a cleanup query first if needed.
+      try {
+        await db.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_officers_icno ON officers(ic_no)');
+      } catch (_) {}
+      try {
+        await db.execute(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_jco_or_armyno ON jco_or(army_no)');
+      } catch (_) {}
     }
   }
 
@@ -267,6 +286,16 @@ class AppDatabase {
     )''';
 
   // ── Officers CRUD ─────────────────────────────────────────────────────────
+  /// Returns true if another officer already has this IC No (excludes excludeId,
+  /// so editing a record doesn't flag itself as a duplicate of itself).
+  Future<bool> officerIcNoExists(String? icNo, {int? excludeId}) async {
+    if (icNo == null || icNo.trim().isEmpty) return false;
+    final db = await database;
+    final rows = await db
+        .query('officers', where: 'ic_no = ?', whereArgs: [icNo.trim()]);
+    return rows.any((r) => r['id'] != excludeId);
+  }
+
   Future<int> insertOfficer(OfficerModel m) async {
     final db = await database;
     m.createdAt = DateTime.now().toIso8601String();
@@ -344,6 +373,15 @@ class AppDatabase {
   }
 
   // ── JCO/OR CRUD ───────────────────────────────────────────────────────────
+  /// Returns true if another JCO/OR record already has this Army No.
+  Future<bool> jcoArmyNoExists(String? armyNo, {int? excludeId}) async {
+    if (armyNo == null || armyNo.trim().isEmpty) return false;
+    final db = await database;
+    final rows = await db
+        .query('jco_or', where: 'army_no = ?', whereArgs: [armyNo.trim()]);
+    return rows.any((r) => r['id'] != excludeId);
+  }
+
   Future<int> insertJco(JcoOrModel m) async {
     final db = await database;
     m.createdAt = DateTime.now().toIso8601String();
@@ -533,6 +571,39 @@ class AppDatabase {
           q(await db.rawQuery("SELECT COUNT(*) FROM health_records")),
       'out_str_total':
           q(await db.rawQuery("SELECT COUNT(*) FROM out_strength_records")),
+
+      // Present JCO breakdown by rank
+      'jco_nbsub': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_jco' AND rank='Nb Sub'")),
+      'jco_sub': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_jco' AND rank='Sub'")),
+      'jco_submaj': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_jco' AND rank='Sub Maj'")),
+      // Present OR breakdown by rank
+      'or_sep': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_or' AND rank='Sep'")),
+      'or_lnk': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_or' AND rank='L/Nk'")),
+      'or_nk': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_or' AND rank='Nk'")),
+      'or_hav': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_present_or' AND rank='Hav'")),
+      // On ERE / Retired split by rank-type (JCO ranks vs OR ranks)
+      'jco_on_ere_jco': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_on_ere' AND rank IN ('Nb Sub','Sub','Sub Maj')")),
+      'jco_on_ere_or': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_on_ere' AND rank IN ('Sep','L/Nk','Nk','Hav')")),
+      'jco_retired_jco': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_retired' AND rank IN ('Nb Sub','Sub','Sub Maj')")),
+      'jco_retired_or': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM jco_or WHERE sub_cat='jco_retired' AND rank IN ('Sep','L/Nk','Nk','Hav')")),
+      // Out Strength counts bucketed by personnel type
+      'out_str_officer': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM out_strength_records osr WHERE EXISTS (SELECT 1 FROM officers o WHERE o.ic_no = osr.army_no)")),
+      'out_str_jco': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM out_strength_records osr WHERE EXISTS (SELECT 1 FROM jco_or j WHERE j.army_no = osr.army_no AND j.rank IN ('Nb Sub','Sub','Sub Maj'))")),
+      'out_str_or': q(await db.rawQuery(
+          "SELECT COUNT(*) FROM out_strength_records osr WHERE EXISTS (SELECT 1 FROM jco_or j WHERE j.army_no = osr.army_no AND j.rank IN ('Sep','L/Nk','Nk','Hav'))")),
     };
   }
 

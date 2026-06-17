@@ -49,23 +49,52 @@ class _ParadeStateViewState extends State<ParadeStateView> {
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
-                  child: Row(
+                  child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Expanded(child: _officersBlock()),
-                        const SizedBox(width: 20),
-                        Expanded(
-                            child: Column(children: [
-                          _jcoBlock(),
-                          const SizedBox(height: 16),
-                          _adminBlock()
-                        ])),
-                        const SizedBox(width: 20),
-                        Expanded(child: _grandTotal()),
+                        IntrinsicHeight(
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Expanded(child: _officersBlock()),
+                              const SizedBox(width: 16),
+                              Expanded(child: _jcoColumn()),
+                              const SizedBox(width: 16),
+                              Expanded(child: _orColumn()),
+                              const SizedBox(width: 16),
+                              Expanded(child: _adminBlock()),
+                            ])),
+                        const SizedBox(height: 28),
+                        IntrinsicHeight(
+                            child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Expanded(
+                                  child: _barChart('PRESENT STATE', [
+                                _BarItem('Officers', _v('off_present'),
+                                    const Color(0xFFE83E5B)),
+                                _BarItem('JCO', _v('jco_present_jco'),
+                                    const Color(0xFF36A2EB)),
+                                _BarItem('OR', _v('jco_present_or'),
+                                    const Color(0xFFFFA726)),
+                              ])),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                  child: _barChart('OUT STRENGTH', [
+                                _BarItem('Officer', _v('out_str_officer'),
+                                    const Color(0xFF8BC34A)),
+                                _BarItem('JCO', _v('out_str_jco'),
+                                    const Color(0xFF36A2EB)),
+                                _BarItem('OR', _v('out_str_or'),
+                                    const Color(0xFFFFA726)),
+                              ])),
+                            ])),
+                        const SizedBox(height: 12),
                       ]))),
     ]);
   }
 
+  // ── Officers column (unchanged) ──────────────────────────────────────────
   Widget _officersBlock() => _block('OFFICERS', [
         _row('Present', _v('off_present'), false),
         _row('Ex COs', _v('off_ex_cos'), false),
@@ -75,13 +104,29 @@ class _ParadeStateViewState extends State<ParadeStateView> {
         _row('TOTAL OFFICERS', _v('off_total'), true),
       ]);
 
-  Widget _jcoBlock() => _block("JCOs / OR's", [
-        _row('Present JCO', _v('jco_present_jco'), false),
-        _row('Present OR', _v('jco_present_or'), false),
-        _row('On ERE', _v('jco_on_ere'), false),
-        _row('Retired', _v('jco_retired'), false),
+  // ── JCO column: single container ─────────────────────────────────────────
+  Widget _jcoColumn() => _block('JCOs', [
+        _row('Nb Sub', _v('jco_nbsub'), false),
+        _row('Sub', _v('jco_sub'), false),
+        _row('Sub Maj', _v('jco_submaj'), false),
         _divider(),
-        _row('TOTAL JCOs/OR', _v('jco_total'), true),
+        _row('Total JCOs', _v('jco_present_jco'), true),
+        _divider(),
+        _row('JCO On ERE', _v('jco_on_ere_jco'), false),
+        _row('JCO On Retd', _v('jco_retired_jco'), false),
+      ]);
+
+  // ── OR column: single container ──────────────────────────────────────────
+  Widget _orColumn() => _block("OR's", [
+        _row('Sep', _v('or_sep'), false),
+        _row('L/Nk', _v('or_lnk'), false),
+        _row('Nk', _v('or_nk'), false),
+        _row('Hav', _v('or_hav'), false),
+        _divider(),
+        _row('Total OR', _v('jco_present_or'), true),
+        _divider(),
+        _row('OR On ERE', _v('jco_on_ere_or'), false),
+        _row('OR On Retd', _v('jco_retired_or'), false),
       ]);
 
   Widget _adminBlock() => _block('ADMIN RECORDS', [
@@ -89,39 +134,6 @@ class _ParadeStateViewState extends State<ParadeStateView> {
         _row('ERE Records', _v('ere_total'), false),
         _row('Health Records', _v('health_total'), false),
         _row('Out Strength', _v('out_str_total'), false),
-      ]);
-
-  Widget _grandTotal() => Container(
-      decoration:
-          BoxDecoration(color: kSlate, borderRadius: BorderRadius.circular(8)),
-      padding: const EdgeInsets.all(20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('GRAND TOTAL',
-            style: TextStyle(
-                color: Colors.white70,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .5)),
-        const SizedBox(height: 20),
-        _bigNum('Officers', _v('off_total')),
-        const SizedBox(height: 16),
-        _bigNum("JCOs/OR's", _v('jco_total')),
-        const SizedBox(height: 24),
-        Container(height: 1, color: Colors.white24),
-        const SizedBox(height: 16),
-        _bigNum('ALL STRENGTH', _v('off_total') + _v('jco_total'), big: true),
-      ]));
-
-  Widget _bigNum(String label, int val, {bool big = false}) =>
-      Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white60, fontSize: 12)),
-        Text('$val',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: big ? 52 : 36,
-                fontWeight: FontWeight.w900,
-                height: 1.1)),
       ]);
 
   Widget _block(String title, List<Widget> rows) => Container(
@@ -160,4 +172,139 @@ class _ParadeStateViewState extends State<ParadeStateView> {
       ]));
 
   Widget _divider() => Container(height: 1, color: const Color(0xFFB0B6C0));
+
+  // ── Bar chart ─────────────────────────────────────────────────────────────
+  Widget _barChart(String title, List<_BarItem> items) {
+    const chartHeight = 200.0;
+    final maxVal =
+        items.map((b) => b.value).fold<int>(0, (p, e) => e > p ? e : p);
+    final scaleMax = maxVal == 0 ? 1 : (maxVal * 1.25).ceil();
+
+    final bars = <Widget>[];
+    for (final b in items) {
+      final h = (b.value / scaleMax * (chartHeight - 34))
+          .clamp(0.0, chartHeight - 34);
+      bars.add(Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text('${b.value}',
+              style: const TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w900, color: kInk)),
+          const SizedBox(height: 4),
+          Container(
+            width: 54,
+            height: h,
+            decoration: BoxDecoration(
+              color: b.color,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(4)),
+              boxShadow: [
+                BoxShadow(
+                    color: b.color.withOpacity(.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2))
+              ],
+            ),
+          ),
+        ],
+      ));
+    }
+
+    final chartArea = Container(
+      height: chartHeight,
+      decoration: const BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Color(0xFF8A8F99), width: 1.4),
+          bottom: BorderSide(color: Color(0xFF8A8F99), width: 1.4),
+        ),
+      ),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: bars,
+      ),
+    );
+
+    final yAxisLabel = SizedBox(
+      height: chartHeight,
+      width: 18,
+      child: RotatedBox(
+        quarterTurns: 3,
+        child: Center(
+          child: Text('NUMBER OF PERSONNEL',
+              style: TextStyle(
+                  fontSize: 10,
+                  color: kInkSoft,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: .4)),
+        ),
+      ),
+    );
+
+    final labels = <Widget>[];
+    for (final b in items) {
+      labels.add(SizedBox(
+        width: 54,
+        child: Text(b.label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: 12, fontWeight: FontWeight.w700, color: kInk)),
+      ));
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+          color: kSurface,
+          border: Border.all(color: kBorder),
+          borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.fromLTRB(20, 16, 28, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .5,
+                  color: kSlate)),
+          const SizedBox(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              yAxisLabel,
+              const SizedBox(width: 8),
+              Expanded(child: chartArea),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const SizedBox(width: 26),
+              Expanded(
+                  child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: labels)),
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Center(
+              child: Text('Personnel Type',
+                  style: TextStyle(
+                      fontSize: 10,
+                      color: kInkSoft,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: .3))),
+        ],
+      ),
+    );
+  }
+}
+
+class _BarItem {
+  final String label;
+  final int value;
+  final Color color;
+  _BarItem(this.label, this.value, this.color);
 }

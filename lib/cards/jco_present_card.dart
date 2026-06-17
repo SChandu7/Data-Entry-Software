@@ -9,12 +9,14 @@ import '../db/models.dart';
 class JcoPresentCard extends StatefulWidget {
   final JcoOrModel? record;
   final VoidCallback onSaved;
+  final VoidCallback onExit;
   final String subCategory; // jco_present_jco or jco_present_or
   final List<String> ranks; // rank list for this variant
   const JcoPresentCard(
       {super.key,
       this.record,
       required this.onSaved,
+      required this.onExit,
       required this.subCategory,
       required this.ranks});
   @override
@@ -24,6 +26,7 @@ class JcoPresentCard extends StatefulWidget {
 class _JcoPresentCardState extends State<JcoPresentCard> {
   final _db = AppDatabase.instance;
   bool _saving = false;
+  int? _savedId; // captures the new row id after first successful insert
 
   // Pers
   final _armyNo = TextEditingController();
@@ -402,8 +405,8 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
   }
 
   JcoOrModel _buildModel() {
-    final m =
-        JcoOrModel(subCategory: widget.subCategory, id: widget.record?.id);
+    final m = JcoOrModel(
+        subCategory: widget.subCategory, id: widget.record?.id ?? _savedId);
     m.armyNo = _armyNo.text.trim();
     m.rank = _rank;
     m.name = _name.text.trim();
@@ -531,9 +534,18 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
     setState(() => _saving = true);
     try {
       final m = _buildModel();
-      if (m.id == null)
-        await _db.insertJco(m);
-      else
+      final dup = await _db.jcoArmyNoExists(m.armyNo, excludeId: m.id);
+      if (dup) {
+        if (mounted)
+          showSnack(context,
+              'Army No "${m.armyNo}" already exists — cannot save duplicate.',
+              error: true);
+        if (mounted) setState(() => _saving = false);
+        return;
+      }
+      if (m.id == null) {
+        _savedId = await _db.insertJco(m);
+      } else
         await _db.updateJco(m);
       if (mounted) {
         showSnack(context, m.id == null ? 'Record saved.' : 'Record updated.');
@@ -949,7 +961,7 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
         onClear: _clear,
         onFind: () => showSnack(context, 'Use the filter panel on the right.'),
         onPrint: () => showSnack(context, 'Print: coming soon.'),
-        onExit: () {},
+        onExit: widget.onExit,
       ),
     ]);
   }
