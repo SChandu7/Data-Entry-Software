@@ -185,36 +185,63 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // ── App bar ───────────────────────────────────────────────────────────────
   Widget _appBar() => Container(
-      height: 52,
-      color: kSlate,
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Row(children: [
-        if (_editOfficer != null || _editJco != null)
-          Chip(
-              label: Text(
+        height: 52,
+        color: kSlate,
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+        child: Row(
+          children: [
+            if (_editOfficer != null || _editJco != null)
+              Chip(
+                label: Text(
                   'Editing: ${_editOfficer?.name ?? _editJco?.name ?? ''}',
-                  style: const TextStyle(fontSize: 12)),
-              backgroundColor: Colors.white12,
-              labelStyle: const TextStyle(color: Colors.white)),
-        const Spacer(),
-        Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-                color: Colors.white12, borderRadius: BorderRadius.circular(6)),
-            child: const Icon(Icons.military_tech_outlined,
-                color: Colors.white, size: 18)),
-        const SizedBox(width: 10),
-        const Text('BIP',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 17,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 2)),
-        const SizedBox(width: 8),
-        const Text('· Bn Information Package',
-            style: TextStyle(color: Colors.white54, fontSize: 12)),
-      ]));
+                  style: const TextStyle(fontSize: 12),
+                ),
+                backgroundColor: Colors.white12,
+                labelStyle: const TextStyle(color: Colors.white),
+              ),
+            Expanded(
+              child: Center(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.white12,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.military_tech_outlined,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'BIP',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '· Bn Information Package',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
   // ── Category nav — FULL WIDTH stretched tabs ──────────────────────────────
   Widget _catNav() => Container(
       decoration: const BoxDecoration(
