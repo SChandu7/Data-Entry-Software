@@ -2,18 +2,30 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// ───── Palette ─────────────────────────────────────────────────────────────
-const Color kBg = Color(0xFFECEEF1);
+// ───── Palette (v2 — Navy / Gold / Steel-Blue professional theme) ──────────
+const Color kBg = Color(0xFFEDF1F5); // cool light page background
 const Color kSurface = Colors.white;
-const Color kHeader = Color(0xFF2E3440); // dark section headers
-const Color kSlate = Color(0xFF2E3440); // primary action / accent
-const Color kBorder = Color(0xFFC5CAD3);
-const Color kInk = Color(0xFF1C1F26);
-const Color kInkSoft = Color(0xFF5A5E69);
-const Color kField = Color(0xFFF5F6F9);
-const Color kDanger = Color(0xFFB92A2A);
-const Color kSilver1 = Color(0xFFECEEF2);
-const Color kSilver2 = Color(0xFFD8DCE3);
+const Color kHeader = Color(0xFF132238); // dark section headers
+const Color kSlate = Color(0xFF132238); // primary navy — base of the UI
+const Color kNavyDeep = Color(0xFF0C1726); // deepest navy, app bar / emphasis
+const Color kGold = Color(0xFFC9962E); // primary accent — selection, CTAs
+const Color kGoldSoft = Color(0x26C9962E); // translucent gold for tints/badges
+const Color kAccentBlue =
+    Color(0xFF2F72B0); // secondary accent — links, info, charts
+const Color kAccentBlueSoft = Color(0x222F72B0);
+const Color kBorder = Color(0xFFD7DCE4);
+const Color kInk = Color(0xFF16212E);
+const Color kInkSoft = Color(0xFF5B6675);
+const Color kField = Color(0xFFF2F4F8);
+const Color kDanger = Color(0xFFB3261E);
+const Color kSilver1 = Color(0xFFEEF1F5);
+const Color kSilver2 = Color(0xFFDDE2E9);
+
+// Card elevation used throughout for a refined, lifted look instead of flat borders.
+const List<BoxShadow> kCardShadow = [
+  BoxShadow(color: Color(0x14132238), blurRadius: 10, offset: Offset(0, 3)),
+];
+const double kRadius = 8.0;
 
 // ───── Options lists ───────────────────────────────────────────────────────
 const kOfficerRanks = [
@@ -29,6 +41,7 @@ const kOfficerRanks = [
 const kJcoRanks = ['Sep', 'L/Nk', 'Nk', 'Hav', 'Nb Sub', 'Sub', 'Sub Maj'];
 const kJcoOnlyRanks = ['Nb Sub', 'Sub', 'Sub Maj'];
 const kOrOnlyRanks = ['Sep', 'L/Nk', 'Nk', 'Hav'];
+const kAllRanks = [...kOfficerRanks, ...kJcoRanks];
 const kBlood = ['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'];
 const kSex = ['M', 'F'];
 const kYesNo = ['Yes', 'No'];
@@ -67,14 +80,14 @@ InputDecoration kDec([String? hint]) => InputDecoration(
       hintStyle: const TextStyle(fontSize: 12, color: Color(0xFFADB2BB)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(7),
           borderSide: const BorderSide(color: kBorder)),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(7),
           borderSide: const BorderSide(color: kBorder)),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(5),
-          borderSide: const BorderSide(color: kSlate, width: 1.5)),
+          borderRadius: BorderRadius.circular(7),
+          borderSide: const BorderSide(color: kGold, width: 1.6)),
     );
 
 // ───── buildAppTheme ───────────────────────────────────────────────────────
@@ -82,7 +95,10 @@ ThemeData buildAppTheme() => ThemeData(
       useMaterial3: true,
       scaffoldBackgroundColor: kBg,
       colorScheme: ColorScheme.fromSeed(
-          seedColor: kSlate, primary: kSlate, surface: kSurface),
+          seedColor: kSlate,
+          primary: kSlate,
+          secondary: kGold,
+          surface: kSurface),
       inputDecorationTheme: InputDecorationTheme(
         isDense: true,
         filled: true,
@@ -90,14 +106,14 @@ ThemeData buildAppTheme() => ThemeData(
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(7),
             borderSide: const BorderSide(color: kBorder)),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
+            borderRadius: BorderRadius.circular(7),
             borderSide: const BorderSide(color: kBorder)),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(5),
-            borderSide: const BorderSide(color: kSlate, width: 1.5)),
+            borderRadius: BorderRadius.circular(7),
+            borderSide: const BorderSide(color: kGold, width: 1.6)),
       ),
       dialogTheme: const DialogThemeData(
         backgroundColor: kSurface,
@@ -105,40 +121,69 @@ ThemeData buildAppTheme() => ThemeData(
       ),
     );
 
-// ───── SectionHeader (dark bar) ────────────────────────────────────────────
+// ───── SectionHeader (gradient navy bar with accent stripe + optional icon) ─
 class SectionHeader extends StatelessWidget {
   final String title;
-  const SectionHeader(this.title, {super.key});
+  final IconData? icon;
+  final Color accentColor;
+  const SectionHeader(this.title,
+      {super.key, this.icon, this.accentColor = kGold});
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-      color: kHeader,
-      child: Text(title.toUpperCase(), style: kSectionTitle),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [kNavyDeep, kHeader]),
+        border: Border(bottom: BorderSide(color: accentColor, width: 2.6)),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      child: Row(children: [
+        if (icon != null) ...[
+          Icon(icon, size: 15, color: accentColor),
+          const SizedBox(width: 8),
+        ],
+        Text(title.toUpperCase(), style: kSectionTitle),
+      ]),
     );
   }
 }
 
-// ───── CardSection ──────────────────────────────────────────────────────────
+// ───── CardSection (accent left-edge stripe, elevated card) ───────────────
 class CardSection extends StatelessWidget {
   final String title;
   final Widget child;
-  const CardSection({super.key, required this.title, required this.child});
+  final IconData? icon;
+  final Color accentColor;
+  const CardSection(
+      {super.key,
+      required this.title,
+      required this.child,
+      this.icon,
+      this.accentColor = kGold});
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: kSurface,
         border: Border.all(color: kBorder),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(kRadius),
+        boxShadow: kCardShadow,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SectionHeader(title),
-        Padding(padding: const EdgeInsets.all(14), child: child),
-      ]),
+      child: IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(width: 4, color: accentColor),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SectionHeader(title, icon: icon, accentColor: accentColor),
+          Padding(padding: const EdgeInsets.all(14), child: child),
+        ])),
+      ])),
     );
   }
 }
@@ -151,12 +196,16 @@ class SubLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8, top: 6),
-      child: Text(text.toUpperCase(),
-          style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: .5,
-              color: kSlate)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(width: 3, height: 13, color: kGold),
+        const SizedBox(width: 7),
+        Text(text.toUpperCase(),
+            style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .5,
+                color: kSlate)),
+      ]),
     );
   }
 }
@@ -185,7 +234,8 @@ class PhotoBox extends StatelessWidget {
         decoration: BoxDecoration(
           color: kField,
           border: Border.all(color: kBorder),
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(kRadius),
+          boxShadow: kCardShadow,
         ),
         clipBehavior: Clip.antiAlias,
         child: child,
@@ -264,6 +314,10 @@ class BipFooter extends StatelessWidget {
       decoration: const BoxDecoration(
         color: kSurface,
         border: Border(top: BorderSide(color: kBorder)),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x14132238), blurRadius: 10, offset: Offset(0, -3))
+        ],
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(children: [
@@ -291,13 +345,17 @@ class BipFooter extends StatelessWidget {
           ? const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white))
-          : Icon(isEditing ? Icons.update : Icons.save_outlined, size: 18),
-      label: Text(isEditing ? 'Update' : 'Save'),
+              child: CircularProgressIndicator(strokeWidth: 2, color: kInk))
+          : Icon(isEditing ? Icons.update : Icons.save_outlined,
+              size: 18, color: kInk),
+      label: Text(isEditing ? 'Update' : 'Save',
+          style: const TextStyle(color: kInk, fontWeight: FontWeight.w800)),
       style: FilledButton.styleFrom(
-        backgroundColor: kSlate,
+        backgroundColor: kGold,
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadius)),
+        elevation: 2,
       ),
     );
   }
@@ -311,7 +369,9 @@ class BipFooter extends StatelessWidget {
       label: Text(label),
       style: OutlinedButton.styleFrom(
         foregroundColor: c,
-        side: BorderSide(color: c),
+        side: BorderSide(color: c, width: 1.2),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadius)),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       ),
     );
@@ -531,17 +591,23 @@ class AdminSub {
   static const health = 'adm_health';
   static const ere = 'adm_ere';
   static const outStr = 'adm_out';
+  static const firing = 'adm_firing';
+  static const cpt = 'adm_cpt';
+  static const filterEngine = 'adm_filter';
   static String label(String s) {
     const m = {
       'adm_leave': 'Leave',
       'adm_health': 'Health',
       'adm_ere': 'ERE',
-      'adm_out': 'Out Strength'
+      'adm_out': 'Out Strength',
+      'adm_firing': 'Firing',
+      'adm_cpt': 'CPT',
+      'adm_filter': 'Filter Engine'
     };
     return m[s] ?? s;
   }
 
-  static const all = [leave, health, ere, outStr];
+  static const all = [leave, health, ere, outStr, firing, cpt, filterEngine];
 }
 
 // ── Leave sub-heading constants ────────────────────────────────────────────
@@ -722,5 +788,19 @@ class OutStrSub {
       'os_out': 'Out Station'
     };
     return m[s];
+  }
+}
+
+// ── Miscellaneous: Firing & CPT ─────────────────────────────────────────────
+const kFiringResults = ['MM', 'FC', 'SS'];
+const kCptResults = ['Super Ex', 'Ex', 'Good', 'Sat', 'Fail'];
+
+class MiscSub {
+  static const firing = 'misc_firing';
+  static const cpt = 'misc_cpt';
+  static const allSubs = [firing, cpt];
+  static String label(String s) {
+    const m = {'misc_firing': 'Firing', 'misc_cpt': 'CPT'};
+    return m[s] ?? s;
   }
 }

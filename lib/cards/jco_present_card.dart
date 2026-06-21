@@ -675,6 +675,75 @@ class _JcoPresentCardState extends State<JcoPresentCard>
                     onChanged: cb)
               ]));
 
+  // ── Flex variants (no fixed width) — used for PERS DETAILS so every row
+  // fills its full width edge-to-edge with no leftover gaps.
+  Widget _ff(String l, TextEditingController c) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(l.toUpperCase(), style: kLabelStyle)),
+            TextField(controller: c, style: kFieldStyle, decoration: kDec()),
+          ]);
+  Widget _ffDate(String l, TextEditingController c) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(l.toUpperCase(), style: kLabelStyle)),
+            TextField(
+                controller: c,
+                readOnly: true,
+                style: kFieldStyle,
+                onTap: () => _pd(c),
+                decoration: kDec().copyWith(
+                    suffixIcon:
+                        const Icon(Icons.calendar_today_outlined, size: 14))),
+          ]);
+  Widget _ffDD(String l, String? val, List<String> opts,
+          void Function(String?) cb) =>
+      Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(l.toUpperCase(), style: kLabelStyle)),
+            DropdownButtonFormField<String>(
+                value: val,
+                isExpanded: true,
+                style: kFieldStyle.copyWith(color: kInk),
+                items: opts
+                    .map((o) => DropdownMenuItem(
+                        value: o, child: Text(o, style: kFieldStyle)))
+                    .toList(),
+                onChanged: cb),
+          ]);
+  Widget _ffMulti(String l, TextEditingController c, {int lines = 2}) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(l.toUpperCase(), style: kLabelStyle)),
+            TextField(
+                controller: c,
+                maxLines: lines,
+                style: kFieldStyle,
+                decoration: kDec()),
+          ]);
+  Widget _fRow(List<(int flex, Widget field)> items) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < items.length; i++) ...[
+            if (i > 0) const SizedBox(width: 14),
+            Expanded(flex: items[i].$1, child: items[i].$2),
+          ],
+        ],
+      );
+
   Widget _ednDd(String l, String? val, void Function(String?) cb) => SizedBox(
       width: 118,
       child: Column(
@@ -828,55 +897,84 @@ class _JcoPresentCardState extends State<JcoPresentCard>
     return Column(children: [
       Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-          color: const Color(0xFFE8E9EC),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+              color: Color(0xFFE8E9EC),
+              border: Border(bottom: BorderSide(color: kAccentBlue, width: 2))),
           child: Text(SubCat.cardTitle(widget.subCategory),
+              textAlign: TextAlign.center,
               style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w900,
-                  letterSpacing: .4,
+                  letterSpacing: .6,
                   color: kSlate))),
       const SizedBox(height: 14),
       // Pers Details
       CardSection(
           title: 'Pers Details',
-          child: Column(children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                  child: Wrap(spacing: 14, runSpacing: 14, children: [
-                _f('Army No', _armyNo, w: 170),
-                _dd('Rank', _rank, widget.ranks,
-                    (v) => setState(() => _rank = v),
-                    w: 140),
-                _f('Name', _name, w: 290),
-                _fDate('DOB', _dob, w: 150),
-                _fDate('DOE', _doe, w: 150),
-                _fDate('DOR', _dor, w: 150),
-                _dd('Coy', _coy, kCoys, (v) => setState(() => _coy = v),
-                    w: 100),
-                _f('RR/ERE/FMN', _rrEre, w: 220),
-                _dd('Svc Extn', _svcExtn, kYesNo,
-                    (v) => setState(() => _svcExtn = v),
-                    w: 140),
-                _f('ICard No', _icard, w: 160),
-                _f('PAN Card No', _pan, w: 180),
-                _dd('Blood GP', _bloodGp, kBlood,
-                    (v) => setState(() => _bloodGp = v),
-                    w: 120),
-                _dd('Domicile', _domicile, kDomicile,
-                    (v) => setState(() => _domicile = v),
-                    w: 150),
-                _f('Civ Edn', _civEdn, w: 160),
-                _f('Med Cat', _medCat, w: 140),
-                _f('Aadhar Card', _aadhar, w: 210),
-                _f('Diag', _diag, w: 200),
-                _fDate('Due On', _dueOn, w: 150),
-                _f('E Mail Id', _email, w: 270),
-                _fMulti('Honours and Awards', _honours),
-              ])),
-              const SizedBox(width: 16),
-              PhotoBox(photoPath: _photoPath, onTap: _pickPhoto),
-            ]),
+          icon: Icons.badge_outlined,
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  _fRow([
+                    (2, _ff('Army No', _armyNo)),
+                    (
+                      2,
+                      _ffDD('Rank', _rank, widget.ranks,
+                          (v) => setState(() => _rank = v))
+                    ),
+                    (3, _ff('Name', _name)),
+                    (
+                      1,
+                      _ffDD('Coy', _coy, kCoys, (v) => setState(() => _coy = v))
+                    )
+                  ]),
+                  const SizedBox(height: 14),
+                  _fRow([
+                    (1, _ffDate('DOB', _dob)),
+                    (1, _ffDate('DOE', _doe)),
+                    (1, _ffDate('DOR', _dor)),
+                    (
+                      1,
+                      _ffDD('Blood GP', _bloodGp, kBlood,
+                          (v) => setState(() => _bloodGp = v))
+                    ),
+                    (
+                      1,
+                      _ffDD('Domicile', _domicile, kDomicile,
+                          (v) => setState(() => _domicile = v))
+                    )
+                  ]),
+                  const SizedBox(height: 14),
+                  _fRow([
+                    (2, _ff('RR/ERE/FMN', _rrEre)),
+                    (
+                      1,
+                      _ffDD('Svc Extn', _svcExtn, kYesNo,
+                          (v) => setState(() => _svcExtn = v))
+                    ),
+                    (1, _ff('ICard No', _icard)),
+                    (1, _ff('PAN Card No', _pan))
+                  ]),
+                  const SizedBox(height: 14),
+                  _fRow([
+                    (1, _ff('Civ Edn', _civEdn)),
+                    (1, _ff('Med Cat', _medCat)),
+                    (2, _ff('Aadhar Card', _aadhar)),
+                    (2, _ff('Diag', _diag)),
+                    (1, _ffDate('Due On', _dueOn))
+                  ]),
+                  const SizedBox(height: 14),
+                  _fRow([
+                    (1, _ff('E Mail Id', _email)),
+                    (2, _ffMulti('Honours and Awards', _honours, lines: 2))
+                  ]),
+                ])),
+            const SizedBox(width: 16),
+            PhotoBox(photoPath: _photoPath, onTap: _pickPhoto),
           ])),
       // Kindred Roll
       CardSection(

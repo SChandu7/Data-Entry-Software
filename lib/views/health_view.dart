@@ -207,7 +207,9 @@ class _HealthViewState extends State<HealthView> {
     final total = _isWeight ? _pivotRows.length : _rawRows.length;
     return Column(children: [
       Container(
-          color: kHeader,
+          decoration: const BoxDecoration(
+              color: kHeader,
+              border: Border(bottom: BorderSide(color: kGold, width: 2.5))),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Row(children: [
             Expanded(child: Text(_title, style: kSectionTitle)),
@@ -341,6 +343,7 @@ class _HealthViewState extends State<HealthView> {
       'BMI',
       'Class',
       'Age',
+      'Chart',
       ...kMonths
     ];
     return Table(
@@ -351,7 +354,8 @@ class _HealthViewState extends State<HealthView> {
           1: const FixedColumnWidth(85),
           2: const FixedColumnWidth(60),
           3: const FixedColumnWidth(130),
-          4: const FixedColumnWidth(45)
+          4: const FixedColumnWidth(45),
+          12: const FixedColumnWidth(56)
         },
         children: [
           TableRow(
@@ -374,11 +378,134 @@ class _HealthViewState extends State<HealthView> {
                   _td(_s(_pivotRows[i], 'bmi')),
                   _td(_s(_pivotRows[i], 'weight_class')),
                   _td(_s(_pivotRows[i], 'age')),
+                  Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Center(
+                          child: IconButton(
+                              icon: const Icon(Icons.bar_chart_rounded,
+                                  size: 19, color: kAccentBlue),
+                              tooltip: 'View weight chart',
+                              onPressed: () =>
+                                  _showWeightChart(_pivotRows[i])))),
                   ...kMonths.map((m) => _td(
                       (_pivotRows[i]['months'] as Map<String, String>)[m] ??
                           '-')),
                 ]),
         ]);
+  }
+
+  // ── Per-soldier monthly weight bar-chart popup ────────────────────────────
+  void _showWeightChart(Map<String, dynamic> row) {
+    final months = row['months'] as Map<String, String>;
+    final name = _s(row, 'name');
+    final armyNo = _s(row, 'army_no');
+    showDialog(
+        context: context,
+        builder: (ctx) => Dialog(
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(kRadius)),
+              child: Container(
+                width: 640,
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Icon(Icons.bar_chart_rounded,
+                            color: kAccentBlue, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text('Weight Chart — $name ($armyNo)',
+                                style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: kInk))),
+                      ]),
+                      const SizedBox(height: 4),
+                      const Text('Monthly weight record (Jan – Dec)',
+                          style: TextStyle(fontSize: 12, color: kInkSoft)),
+                      const SizedBox(height: 18),
+                      _monthlyBarChart(months),
+                      const SizedBox(height: 20),
+                      Align(
+                          alignment: Alignment.centerRight,
+                          child: FilledButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: kSlate,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(kRadius))),
+                              child: const Text('Close'))),
+                    ]),
+              ),
+            ));
+  }
+
+  Widget _monthlyBarChart(Map<String, String> months) {
+    const chartHeight = 190.0;
+    final values = <double>[];
+    for (final m in kMonths) {
+      values.add(double.tryParse((months[m] ?? '').trim()) ?? 0);
+    }
+    final maxVal = values.fold<double>(0, (p, e) => e > p ? e : p);
+    final scaleMax = maxVal <= 0 ? 1.0 : maxVal * 1.25;
+
+    final bars = <Widget>[];
+    for (int i = 0; i < kMonths.length; i++) {
+      final v = values[i];
+      final h =
+          (v / scaleMax * (chartHeight - 44)).clamp(0.0, chartHeight - 44);
+      final hasVal = v > 0;
+      bars.add(Expanded(
+          child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Text(
+              hasVal
+                  ? v.toStringAsFixed(v.truncateToDouble() == v ? 0 : 1)
+                  : '-',
+              style: const TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w800, color: kInk)),
+          const SizedBox(height: 4),
+          Container(
+            height: hasVal ? h : 2,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            decoration: BoxDecoration(
+              color: hasVal ? kAccentBlue : kBorder,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(3)),
+              boxShadow: hasVal
+                  ? [
+                      BoxShadow(
+                          color: kAccentBlue.withOpacity(.3),
+                          blurRadius: 5,
+                          offset: const Offset(0, 2))
+                    ]
+                  : null,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(kMonths[i],
+              style: const TextStyle(
+                  fontSize: 10, fontWeight: FontWeight.w700, color: kInkSoft)),
+        ],
+      )));
+    }
+
+    return Container(
+      height: chartHeight,
+      padding: const EdgeInsets.only(left: 8, right: 8, top: 6),
+      decoration: const BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Color(0xFF8A8F99), width: 1.2),
+          bottom: BorderSide(color: Color(0xFF8A8F99), width: 1.2),
+        ),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: bars),
+    );
   }
 
   Widget _th(String t) => Padding(

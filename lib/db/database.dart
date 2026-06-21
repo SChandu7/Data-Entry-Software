@@ -32,7 +32,7 @@ class AppDatabase {
     final path = await _dbPath;
     return databaseFactory.openDatabase(path,
         options: OpenDatabaseOptions(
-            version: 6, onCreate: _create, onUpgrade: _upgrade));
+            version: 7, onCreate: _create, onUpgrade: _upgrade));
   }
 
   // ── Create v2 schema from scratch ────────────────────────────────────────
@@ -43,6 +43,8 @@ class AppDatabase {
     await db.execute(_ereDDL);
     await db.execute(_healthDDL);
     await db.execute(_outStrDDL);
+    await db.execute(_firingDDL);
+    await db.execute(_cptDDL);
     await db.execute(
         'CREATE UNIQUE INDEX IF NOT EXISTS idx_officers_icno ON officers(ic_no)');
     await db.execute(
@@ -172,6 +174,11 @@ class AppDatabase {
             'CREATE UNIQUE INDEX IF NOT EXISTS idx_jco_or_armyno ON jco_or(army_no)');
       } catch (_) {}
     }
+    if (oldV < 7) {
+      // Miscellaneous: Firing & CPT result records
+      await db.execute(_firingDDL);
+      await db.execute(_cptDDL);
+    }
   }
 
   // ── DDL strings ───────────────────────────────────────────────────────────
@@ -283,6 +290,18 @@ class AppDatabase {
       army_no TEXT NOT NULL, reason TEXT, location TEXT,
       from_dt TEXT, expected_return TEXT,
       remarks TEXT, created_at TEXT
+    )''';
+
+  static const _firingDDL = '''
+    CREATE TABLE IF NOT EXISTS firing_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      army_no TEXT NOT NULL, result TEXT, created_at TEXT
+    )''';
+
+  static const _cptDDL = '''
+    CREATE TABLE IF NOT EXISTS cpt_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      army_no TEXT NOT NULL, result TEXT, created_at TEXT
     )''';
 
   // ── Officers CRUD ─────────────────────────────────────────────────────────
@@ -546,6 +565,36 @@ class AppDatabase {
   Future<int> deleteOutStr(int id) async => (await database)
       .delete('out_strength_records', where: 'id = ?', whereArgs: [id]);
 
+  // ── Firing CRUD ───────────────────────────────────────────────────────────
+  Future<int> insertFiring(FiringRecord r) async {
+    r.createdAt = DateTime.now().toIso8601String();
+    return (await database).insert('firing_records', r.toMap()..remove('id'));
+  }
+
+  Future<List<FiringRecord>> getFiringByArmyNo(String armyNo) async {
+    final rows = await (await database).query('firing_records',
+        where: 'army_no = ?', whereArgs: [armyNo], orderBy: 'id DESC');
+    return rows.map(FiringRecord.fromMap).toList();
+  }
+
+  Future<int> deleteFiring(int id) async => (await database)
+      .delete('firing_records', where: 'id = ?', whereArgs: [id]);
+
+  // ── CPT CRUD ──────────────────────────────────────────────────────────────
+  Future<int> insertCpt(CptRecord r) async {
+    r.createdAt = DateTime.now().toIso8601String();
+    return (await database).insert('cpt_records', r.toMap()..remove('id'));
+  }
+
+  Future<List<CptRecord>> getCptByArmyNo(String armyNo) async {
+    final rows = await (await database).query('cpt_records',
+        where: 'army_no = ?', whereArgs: [armyNo], orderBy: 'id DESC');
+    return rows.map(CptRecord.fromMap).toList();
+  }
+
+  Future<int> deleteCpt(int id) async =>
+      (await database).delete('cpt_records', where: 'id = ?', whereArgs: [id]);
+
   // ── Parade State counts ───────────────────────────────────────────────────
   Future<Map<String, dynamic>> getParadeState() async {
     final db = await database;
@@ -696,5 +745,164 @@ class AppDatabase {
       $where
       ORDER BY os.created_at DESC
     ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getFiringReport() async {
+    final db = await database;
+    return db.rawQuery('''
+      SELECT fr.id, fr.army_no, fr.result, fr.created_at,
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
+      FROM firing_records fr
+      LEFT JOIN jco_or jo ON fr.army_no = jo.army_no
+      LEFT JOIN officers of ON fr.army_no = of.ic_no
+      ORDER BY fr.created_at DESC
+    ''');
+  }
+
+  Future<List<Map<String, dynamic>>> getCptReport() async {
+    final db = await database;
+    return db.rawQuery('''
+      SELECT cr.id, cr.army_no, cr.result, cr.created_at,
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
+      FROM cpt_records cr
+      LEFT JOIN jco_or jo ON cr.army_no = jo.army_no
+      LEFT JOIN officers of ON cr.army_no = of.ic_no
+      ORDER BY cr.created_at DESC
+    ''');
+  }
+
+  // ── Filter Engine — unified search across Officers + JCO/OR, with optional
+  // "has related record" flags reaching into every admin-entered table. ─────
+  Future<List<Map<String, dynamic>>> getFilterEngineResults({
+    String? search,
+    bool includeOfficers = true,
+    bool includeJco = true,
+    String? rank,
+    String? bloodGp,
+    String? domicile,
+    String? civEdn,
+    String? coy,
+    String? medCatContains,
+    bool hasLeave = false,
+    bool hasHealth = false,
+    bool hasEre = false,
+    bool hasOutStr = false,
+    bool hasFiring = false,
+    bool hasCpt = false,
+  }) async {
+    final db = await database;
+    final parts = <String>[];
+    if (includeOfficers) {
+      parts.add('''
+        SELECT 'Officer' as ptype, ic_no as army_no, rank, name, '-' as coy,
+               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob
+        FROM officers
+      ''');
+    }
+    if (includeJco) {
+      parts.add('''
+        SELECT 'JCO/OR' as ptype, army_no, rank, name, coy,
+               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob
+        FROM jco_or
+      ''');
+    }
+    if (parts.isEmpty) return [];
+    final union = parts.join(' UNION ALL ');
+
+    final where = <String>[];
+    final args = <dynamic>[];
+    if (search != null && search.trim().isNotEmpty) {
+      where.add('(name LIKE ? OR army_no LIKE ?)');
+      args.add('%${search.trim()}%');
+      args.add('%${search.trim()}%');
+    }
+    if (rank != null) {
+      where.add('rank = ?');
+      args.add(rank);
+    }
+    if (bloodGp != null) {
+      where.add('blood_gp = ?');
+      args.add(bloodGp);
+    }
+    if (domicile != null) {
+      where.add('domicile = ?');
+      args.add(domicile);
+    }
+    if (civEdn != null) {
+      where.add('civ_edn = ?');
+      args.add(civEdn);
+    }
+    if (coy != null) {
+      where.add('coy = ?');
+      args.add(coy);
+    }
+    if (medCatContains != null && medCatContains.trim().isNotEmpty) {
+      where.add('med_cat LIKE ?');
+      args.add('%${medCatContains.trim()}%');
+    }
+
+    // For each active "has X record" filter: require the record to exist,
+    // AND pull that record type's most relevant fields as extra columns —
+    // only when that filter is active, so the results/print stay focused
+    // on what was actually asked for rather than showing every table always.
+    final extraCols = <String>[];
+    if (hasLeave) {
+      where.add(
+          'EXISTS (SELECT 1 FROM leave_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT leave_type FROM leave_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as leave_type");
+      extraCols.add(
+          "(SELECT from_dt FROM leave_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as leave_from");
+      extraCols.add(
+          "(SELECT to_dt FROM leave_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as leave_to");
+    }
+    if (hasHealth) {
+      where.add(
+          'EXISTS (SELECT 1 FROM health_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT category FROM health_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as health_category");
+      extraCols.add(
+          "(SELECT bmi FROM health_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as health_bmi");
+      extraCols.add(
+          "(SELECT weight_class FROM health_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as health_class");
+    }
+    if (hasEre) {
+      where.add('EXISTS (SELECT 1 FROM ere_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT ere_unit FROM ere_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as ere_unit");
+      extraCols.add(
+          "(SELECT appointment FROM ere_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as ere_appt");
+      extraCols.add(
+          "(SELECT from_dt FROM ere_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as ere_from");
+    }
+    if (hasOutStr) {
+      where.add(
+          'EXISTS (SELECT 1 FROM out_strength_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT reason FROM out_strength_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as outstr_reason");
+      extraCols.add(
+          "(SELECT location FROM out_strength_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as outstr_loc");
+    }
+    if (hasFiring) {
+      where.add(
+          'EXISTS (SELECT 1 FROM firing_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT result FROM firing_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as firing_result");
+    }
+    if (hasCpt) {
+      where.add('EXISTS (SELECT 1 FROM cpt_records WHERE army_no = t.army_no)');
+      extraCols.add(
+          "(SELECT result FROM cpt_records WHERE army_no=t.army_no ORDER BY created_at DESC LIMIT 1) as cpt_result");
+    }
+
+    final whereClause = where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}';
+    final extraSelect = extraCols.isEmpty ? '' : ', ${extraCols.join(', ')}';
+    final sql =
+        'SELECT t.*$extraSelect FROM ($union) t $whereClause ORDER BY name';
+    return db.rawQuery(sql, args);
   }
 }

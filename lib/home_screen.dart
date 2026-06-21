@@ -17,6 +17,8 @@ import 'views/leave_view.dart';
 import 'views/health_view.dart';
 import 'views/ere_view.dart';
 import 'views/out_strength_view.dart';
+import 'views/firing_view.dart';
+import 'views/cpt_view.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -56,6 +58,7 @@ class _HomeScreenState extends State<HomeScreen> {
     'health': 'Health',
     'ere': 'ERE',
     'out_str': 'Out Strength',
+    'misc': 'Miscellaneous',
   };
 
   static Map<String, List<String>> get _subs => {
@@ -95,6 +98,7 @@ class _HomeScreenState extends State<HomeScreen> {
         'health': HealthSub.allSubs,
         'ere': EreSub.allSubs,
         'out_str': OutStrSub.allSubs,
+        'misc': MiscSub.allSubs,
       };
 
   static String _subLabel(String cat, String s) {
@@ -107,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (cat == 'health') return HealthSub.label(s);
     if (cat == 'ere') return EreSub.label(s);
     if (cat == 'out_str') return OutStrSub.label(s);
+    if (cat == 'misc') return MiscSub.label(s);
     return SubCat.label(s);
   }
 
@@ -217,8 +222,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // ── App bar ───────────────────────────────────────────────────────────────
   Widget _appBar() => Container(
       width: double.infinity,
-      height: 52,
-      color: kSlate,
+      height: 54,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [kNavyDeep, Color(0xFF13243C)]),
+        border: Border(bottom: BorderSide(color: kGold, width: 2)),
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Stack(alignment: Alignment.center, children: [
         // Centred logo + title
@@ -227,10 +238,11 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 32,
               height: 32,
               decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(6)),
+                  color: kGoldSoft,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: kGold.withOpacity(.5))),
               child: const Icon(Icons.military_tech_outlined,
-                  color: Colors.white, size: 18)),
+                  color: kGold, size: 18)),
           const SizedBox(width: 10),
           const Text('BIP',
               style: TextStyle(
@@ -249,8 +261,12 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Chip(
                   label: Text(
                       'Editing: ${_editOfficer?.name ?? _editJco?.name ?? ''}',
-                      style: const TextStyle(fontSize: 12)),
-                  backgroundColor: Colors.white12,
+                      style: const TextStyle(
+                          fontSize: 12,
+                          color: kGold,
+                          fontWeight: FontWeight.w700)),
+                  backgroundColor: kGoldSoft,
+                  side: BorderSide(color: kGold.withOpacity(.4)),
                   labelStyle: const TextStyle(color: Colors.white))),
       ]));
 
@@ -272,15 +288,23 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                            color: sel ? kSlate : kField,
+                            color: sel ? kGold : kField,
                             borderRadius: BorderRadius.circular(7),
-                            border: Border.all(color: sel ? kSlate : kBorder)),
+                            border: Border.all(color: sel ? kGold : kBorder),
+                            boxShadow: sel
+                                ? const [
+                                    BoxShadow(
+                                        color: Color(0x33C9962E),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2))
+                                  ]
+                                : null),
                         child: Text(_catLabels[cat]!,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w800,
-                                color: sel ? Colors.white : kInk))))));
+                                color: sel ? kInk : kInk))))));
       }).toList()));
 
   // ── Sub-heading nav — left-aligned, natural width ─────────────────────────
@@ -304,19 +328,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 7),
                             decoration: BoxDecoration(
-                                color: sel
-                                    ? const Color(0x1A2E3440)
-                                    : Colors.transparent,
+                                color:
+                                    sel ? kAccentBlueSoft : Colors.transparent,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                    color: sel ? kSlate : kBorder,
+                                    color: sel ? kAccentBlue : kBorder,
                                     width: sel ? 1.4 : 1)),
                             child: Text(_subLabel(_cat, s),
                                 style: TextStyle(
                                     fontSize: 12.5,
                                     fontWeight:
                                         sel ? FontWeight.w700 : FontWeight.w500,
-                                    color: sel ? kSlate : kInk)))));
+                                    color: sel ? kAccentBlue : kInk)))));
               }).toList())));
 
   // ── Active view switcher ──────────────────────────────────────────────────
@@ -335,6 +358,10 @@ class _HomeScreenState extends State<HomeScreen> {
     if (_cat == 'health') return HealthView(key: ValueKey(_sub), subKey: _sub);
     if (_cat == 'ere') return EreView(key: ValueKey(_sub), subKey: _sub);
     if (_cat == 'out_str') return OutStrView(key: ValueKey(_sub), subKey: _sub);
+    if (_cat == 'misc') {
+      if (_sub == MiscSub.cpt) return const CptView();
+      return const FiringView(); // default / MiscSub.firing
+    }
 
     // Officers
     if (_cat == 'officers')

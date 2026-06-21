@@ -134,26 +134,53 @@ class SplashScreen extends StatelessWidget {
           Positioned(
             right: 40,
             bottom: 40,
-            child: Container(
-              width: 150,
-              height: 180,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF5B9BD5), width: 3),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x55000000),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 150,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    border:
+                        Border.all(color: const Color(0xFF5B9BD5), width: 3),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x55000000),
+                        blurRadius: 10,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                _personAsset,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _personPlaceholder(),
-              ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Image.asset(
+                    _personAsset,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _personPlaceholder(),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                    width: 36, height: 1.4, color: const Color(0xFF5B9BD5)),
+                const SizedBox(height: 8),
+                const Text(
+                  'COL KAMLESH KANDPAL',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                    color: Color(0xFFE8EAF0),
+                    shadows: [
+                      Shadow(
+                        color: Color(0x66000000),
+                        blurRadius: 4,
+                        offset: Offset(1, 1),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
 
