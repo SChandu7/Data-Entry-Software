@@ -9,14 +9,14 @@ import '../db/models.dart';
 class JcoOnEreCard extends StatefulWidget {
   final JcoOrModel? record;
   final VoidCallback onSaved;
-  final VoidCallback onExit;
+  final void Function(CardController) onReady;
   const JcoOnEreCard(
-      {super.key, this.record, required this.onSaved, required this.onExit});
+      {super.key, this.record, required this.onSaved, required this.onReady});
   @override
   State<JcoOnEreCard> createState() => _JcoOnEreCardState();
 }
 
-class _JcoOnEreCardState extends State<JcoOnEreCard> {
+class _JcoOnEreCardState extends State<JcoOnEreCard> implements CardController {
   final _db = AppDatabase.instance;
   bool _saving = false;
   int? _savedId; // captures the new row id after first successful insert
@@ -135,7 +135,20 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
   void initState() {
     super.initState();
     if (widget.record != null) _populate(widget.record!);
+    widget.onReady(this);
   }
+
+  // ── CardController interface (drives the screen-pinned footer) ──────────
+  @override
+  bool get isEditing => widget.record != null;
+  @override
+  bool get isSaving => _saving;
+  @override
+  Future<void> doSave() => _save();
+  @override
+  Future<void> doDelete() => _delete();
+  @override
+  void doClear() => _clear();
 
   @override
   void didUpdateWidget(JcoOnEreCard o) {
@@ -556,6 +569,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
       return;
     }
     setState(() => _saving = true);
+    widget.onReady(this);
     try {
       final m = _buildModel();
       final dup = await _db.jcoArmyNoExists(m.armyNo, excludeId: m.id);
@@ -564,7 +578,10 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
           showSnack(context,
               'Army No "${m.armyNo}" already exists — cannot save duplicate.',
               error: true);
-        if (mounted) setState(() => _saving = false);
+        if (mounted) {
+          setState(() => _saving = false);
+          widget.onReady(this);
+        }
         return;
       }
       if (m.id == null) {
@@ -578,7 +595,10 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
     } catch (e) {
       if (mounted) showSnack(context, 'Error: $e', error: true);
     }
-    if (mounted) setState(() => _saving = false);
+    if (mounted) {
+      setState(() => _saving = false);
+      widget.onReady(this);
+    }
   }
 
   Future<void> _delete() async {
@@ -967,17 +987,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> {
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text('Add Row', style: TextStyle(fontSize: 12))),
           ])),
-      const SizedBox(height: 8),
-      BipFooter(
-          isEditing: widget.record != null,
-          isSaving: _saving,
-          onSave: _save,
-          onDelete: _delete,
-          onClear: _clear,
-          onFind: () =>
-              showSnack(context, 'Use the filter panel on the right.'),
-          onPrint: () => showSnack(context, 'Print: coming soon.'),
-          onExit: widget.onExit),
+      const SizedBox(height: 20),
     ]);
   }
 }

@@ -225,6 +225,17 @@ class ComingSoon extends StatelessWidget {
 }
 
 // ───── BipFooter ────────────────────────────────────────────────────────────
+// A data-entry card (Officer / JCO Present / On ERE / Retired) implements
+// this on its State so a single, screen-pinned BipFooter in home_screen.dart
+// can drive whichever card is currently active.
+abstract class CardController {
+  bool get isEditing;
+  bool get isSaving;
+  Future<void> doSave();
+  Future<void> doDelete();
+  void doClear();
+}
+
 class BipFooter extends StatelessWidget {
   final bool isEditing;
   final bool isSaving;

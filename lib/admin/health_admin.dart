@@ -55,11 +55,15 @@ class _HealthAdminState extends State<HealthAdmin> {
   }
 
   Future<void> _onSel(String an, String nm, String rk, String cy) async {
+    // Auto-detect category from the soldier's company (A/B/C/D/SP/HQ).
+    // Temp/Permt LMC can't be auto-detected — user picks those manually.
+    final autoCat = kHealthCategory.contains(cy) ? cy : null;
     setState(() {
       _armyNo = an;
       _name = nm;
       _rank = rk;
       _coy = cy;
+      _category = autoCat;
     });
     _history = await _db.getHealthByArmyNo(an);
     setState(() {});

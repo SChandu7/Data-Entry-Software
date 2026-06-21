@@ -467,9 +467,14 @@ class AppDatabase {
   // ── Army No autocomplete (for admin panel) ────────────────────────────────
   Future<List<Map<String, String>>> searchArmyNo(String q) async {
     final db = await database;
-    final rows = await db.rawQuery(
-        "SELECT army_no, name, rank, coy FROM jco_or WHERE army_no LIKE ? OR name LIKE ? LIMIT 10",
-        ['%$q%', '%$q%']);
+    final rows = await db.rawQuery('''
+      SELECT ic_no AS army_no, name, rank, '' AS coy FROM officers
+        WHERE ic_no LIKE ? OR name LIKE ?
+      UNION ALL
+      SELECT army_no, name, rank, COALESCE(coy,'') AS coy FROM jco_or
+        WHERE army_no LIKE ? OR name LIKE ?
+      LIMIT 20
+    ''', ['%$q%', '%$q%', '%$q%', '%$q%']);
     return rows
         .map((r) => {
               'army_no': r['army_no']?.toString() ?? '',
@@ -624,10 +629,12 @@ class AppDatabase {
     return db.rawQuery('''
       SELECT lr.id, lr.army_no, lr.leave_type, lr.from_dt, lr.to_dt,
              lr.days, lr.reporting_dt, lr.remarks, lr.created_at,
-             COALESCE(jo.name,'—') as name, COALESCE(jo.rank,'') as rank,
-             COALESCE(jo.coy,'') as coy
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
       FROM leave_records lr
       LEFT JOIN jco_or jo ON lr.army_no = jo.army_no
+      LEFT JOIN officers of ON lr.army_no = of.ic_no
       $where
       ORDER BY lr.created_at DESC
     ''');
@@ -641,10 +648,12 @@ class AppDatabase {
              hr.board_dt, hr.due_on, hr.remarks,
              hr.ht, hr.ibw, hr.abw, hr.pct10, hr.bmi, hr.weight_class, hr.age,
              hr.w_month, hr.w_value, hr.created_at,
-             COALESCE(jo.name,'—') as name, COALESCE(jo.rank,'') as rank,
-             COALESCE(jo.coy,'') as coy
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
       FROM health_records hr
       LEFT JOIN jco_or jo ON hr.army_no = jo.army_no
+      LEFT JOIN officers of ON hr.army_no = of.ic_no
       $where
       ORDER BY hr.created_at DESC
     ''');
@@ -661,10 +670,12 @@ class AppDatabase {
     return db.rawQuery('''
       SELECT er.id, er.army_no, er.ere_unit, er.appointment,
              er.from_dt, er.to_dt, er.return_dt, er.remarks, er.created_at,
-             COALESCE(jo.name,'—') as name, COALESCE(jo.rank,'') as rank,
-             COALESCE(jo.coy,'') as coy
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
       FROM ere_records er
       LEFT JOIN jco_or jo ON er.army_no = jo.army_no
+      LEFT JOIN officers of ON er.army_no = of.ic_no
       WHERE 1=1 $filter
       ORDER BY er.created_at DESC
     ''');
@@ -676,10 +687,12 @@ class AppDatabase {
     return db.rawQuery('''
       SELECT os.id, os.army_no, os.reason, os.location,
              os.from_dt, os.expected_return, os.remarks, os.created_at,
-             COALESCE(jo.name,'—') as name, COALESCE(jo.rank,'') as rank,
-             COALESCE(jo.coy,'') as coy
+             COALESCE(jo.name, of.name, '—') as name,
+             COALESCE(jo.rank, of.rank, '-') as rank,
+             COALESCE(jo.coy, '') as coy
       FROM out_strength_records os
       LEFT JOIN jco_or jo ON os.army_no = jo.army_no
+      LEFT JOIN officers of ON os.army_no = of.ic_no
       $where
       ORDER BY os.created_at DESC
     ''');

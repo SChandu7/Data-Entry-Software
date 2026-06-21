@@ -9,21 +9,22 @@ import '../db/models.dart';
 class JcoPresentCard extends StatefulWidget {
   final JcoOrModel? record;
   final VoidCallback onSaved;
-  final VoidCallback onExit;
+  final void Function(CardController) onReady;
   final String subCategory; // jco_present_jco or jco_present_or
   final List<String> ranks; // rank list for this variant
   const JcoPresentCard(
       {super.key,
       this.record,
       required this.onSaved,
-      required this.onExit,
+      required this.onReady,
       required this.subCategory,
       required this.ranks});
   @override
   State<JcoPresentCard> createState() => _JcoPresentCardState();
 }
 
-class _JcoPresentCardState extends State<JcoPresentCard> {
+class _JcoPresentCardState extends State<JcoPresentCard>
+    implements CardController {
   final _db = AppDatabase.instance;
   bool _saving = false;
   int? _savedId; // captures the new row id after first successful insert
@@ -123,7 +124,20 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
   void initState() {
     super.initState();
     if (widget.record != null) _populate(widget.record!);
+    widget.onReady(this);
   }
+
+  // ── CardController interface (drives the screen-pinned footer) ──────────
+  @override
+  bool get isEditing => widget.record != null;
+  @override
+  bool get isSaving => _saving;
+  @override
+  Future<void> doSave() => _save();
+  @override
+  Future<void> doDelete() => _delete();
+  @override
+  void doClear() => _clear();
 
   @override
   void didUpdateWidget(JcoPresentCard o) {
@@ -532,6 +546,7 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
       return;
     }
     setState(() => _saving = true);
+    widget.onReady(this);
     try {
       final m = _buildModel();
       final dup = await _db.jcoArmyNoExists(m.armyNo, excludeId: m.id);
@@ -540,7 +555,10 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
           showSnack(context,
               'Army No "${m.armyNo}" already exists — cannot save duplicate.',
               error: true);
-        if (mounted) setState(() => _saving = false);
+        if (mounted) {
+          setState(() => _saving = false);
+          widget.onReady(this);
+        }
         return;
       }
       if (m.id == null) {
@@ -554,7 +572,10 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
     } catch (e) {
       if (mounted) showSnack(context, 'Error: $e', error: true);
     }
-    if (mounted) setState(() => _saving = false);
+    if (mounted) {
+      setState(() => _saving = false);
+      widget.onReady(this);
+    }
   }
 
   Future<void> _delete() async {
@@ -952,17 +973,7 @@ class _JcoPresentCardState extends State<JcoPresentCard> {
       CardSection(title: 'ERE Details', child: _ereTable()),
       // Discipline
       CardSection(title: 'Discipline', child: _discTable()),
-      const SizedBox(height: 8),
-      BipFooter(
-        isEditing: widget.record != null,
-        isSaving: _saving,
-        onSave: _save,
-        onDelete: _delete,
-        onClear: _clear,
-        onFind: () => showSnack(context, 'Use the filter panel on the right.'),
-        onPrint: () => showSnack(context, 'Print: coming soon.'),
-        onExit: widget.onExit,
-      ),
+      const SizedBox(height: 20),
     ]);
   }
 }

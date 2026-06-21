@@ -13,13 +13,13 @@ class OfficerCard extends StatefulWidget {
   final String subCategory;
   final OfficerModel? record;
   final VoidCallback onSaved;
-  final VoidCallback onExit;
+  final void Function(CardController) onReady;
 
   const OfficerCard({
     super.key,
     required this.subCategory,
     required this.onSaved,
-    required this.onExit,
+    required this.onReady,
     this.record,
   });
 
@@ -27,11 +27,11 @@ class OfficerCard extends StatefulWidget {
   State<OfficerCard> createState() => _OfficerCardState();
 }
 
-class _OfficerCardState extends State<OfficerCard> {
+class _OfficerCardState extends State<OfficerCard> implements CardController {
   final _db = AppDatabase.instance;
   bool _saving = false;
   int? _savedId; // captures the new row id after first successful insert, so a
-  // second Save click updates that row instead of duplicating it
+                 // second Save click updates that row instead of duplicating it
 
   // ── Pers controllers ──────────────────────────────────────────────────────
   final _icNo = TextEditingController();
@@ -59,47 +59,30 @@ class _OfficerCardState extends State<OfficerCard> {
   // ── Kindred controllers ───────────────────────────────────────────────────
   final _wife = TextEditingController();
   final _wifeBday = TextEditingController();
-  final List<TextEditingController> _chName =
-      List.generate(4, (_) => TextEditingController());
-  final List<TextEditingController> _chDob =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _chName = List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _chDob  = List.generate(4, (_) => TextEditingController());
   final List<String?> _chSex = List.filled(4, null, growable: false);
 
   // ── Courses ───────────────────────────────────────────────────────────────
-  final _cYo = TextEditingController();
-  final _cMmg = TextEditingController();
-  final _cMor = TextEditingController();
-  final _cSnip = TextEditingController();
-  final _cAdp = TextEditingController();
-  final _cAtgm = TextEditingController();
-  final _cPwt = TextEditingController();
-  final _cJc = TextEditingController();
-  final _cSc = TextEditingController();
-  final _cCdo = TextEditingController();
-  final _cQm = TextEditingController();
-  final _cTac = TextEditingController();
-  final _cRcl = TextEditingController();
-  final _cRso = TextEditingController();
-  final _cPt = TextEditingController();
-  final _cDssc = TextEditingController();
-  final _cBsw = TextEditingController();
-  final _cOth = TextEditingController();
+  final _cYo=TextEditingController(); final _cMmg=TextEditingController();
+  final _cMor=TextEditingController(); final _cSnip=TextEditingController();
+  final _cAdp=TextEditingController(); final _cAtgm=TextEditingController();
+  final _cPwt=TextEditingController(); final _cJc=TextEditingController();
+  final _cSc=TextEditingController(); final _cCdo=TextEditingController();
+  final _cQm=TextEditingController(); final _cTac=TextEditingController();
+  final _cRcl=TextEditingController(); final _cRso=TextEditingController();
+  final _cPt=TextEditingController(); final _cDssc=TextEditingController();
+  final _cBsw=TextEditingController(); final _cOth=TextEditingController();
 
   // ── Promotions ────────────────────────────────────────────────────────────
-  final _pLt = TextEditingController();
-  final _pCapt = TextEditingController();
-  final _pMaj = TextEditingController();
-  final _pLtCol = TextEditingController();
-  final _pCol = TextEditingController();
-  final _pBrig = TextEditingController();
-  final _pMajGen = TextEditingController();
-  final _pLtGen = TextEditingController();
+  final _pLt=TextEditingController(); final _pCapt=TextEditingController();
+  final _pMaj=TextEditingController(); final _pLtCol=TextEditingController();
+  final _pCol=TextEditingController(); final _pBrig=TextEditingController();
+  final _pMajGen=TextEditingController(); final _pLtGen=TextEditingController();
 
   // ── Service in unit ───────────────────────────────────────────────────────
-  final List<TextEditingController> _svF =
-      List.generate(4, (_) => TextEditingController());
-  final List<TextEditingController> _svT =
-      List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _svF = List.generate(4, (_) => TextEditingController());
+  final List<TextEditingController> _svT = List.generate(4, (_) => TextEditingController());
   final _cmdF = TextEditingController();
   final _cmdT = TextEditingController();
 
@@ -107,319 +90,141 @@ class _OfficerCardState extends State<OfficerCard> {
   void initState() {
     super.initState();
     if (widget.record != null) _populate(widget.record!);
+    widget.onReady(this);
   }
+
+  // ── CardController interface (drives the screen-pinned footer) ──────────
+  @override bool get isEditing => widget.record != null;
+  @override bool get isSaving => _saving;
+  @override Future<void> doSave() => _save();
+  @override Future<void> doDelete() => _delete();
+  @override void doClear() => _clear();
 
   @override
   void didUpdateWidget(OfficerCard old) {
     super.didUpdateWidget(old);
     if (widget.record != old.record) {
-      if (widget.record != null)
-        _populate(widget.record!);
-      else
-        _clear();
+      if (widget.record != null) _populate(widget.record!);
+      else _clear();
     }
   }
 
   @override
   void dispose() {
-    for (final c in [
-      _icNo,
-      _name,
-      _cdaAc,
-      _iCard,
-      _bDay,
-      _mAnn,
-      _honours,
-      _medCat,
-      _diag,
-      _dueOn,
-      _presAddr,
-      _permtAddr,
-      _teleNos,
-      _emailIds,
-      _dob,
-      _doc,
-      _dor,
-      _dom,
-      _wife,
-      _wifeBday,
-      _cYo,
-      _cMmg,
-      _cMor,
-      _cSnip,
-      _cAdp,
-      _cAtgm,
-      _cPwt,
-      _cJc,
-      _cSc,
-      _cCdo,
-      _cQm,
-      _cTac,
-      _cRcl,
-      _cRso,
-      _cPt,
-      _cDssc,
-      _cBsw,
-      _cOth,
-      _pLt,
-      _pCapt,
-      _pMaj,
-      _pLtCol,
-      _pCol,
-      _pBrig,
-      _pMajGen,
-      _pLtGen,
-      _cmdF,
-      _cmdT
-    ]) {
+    for (final c in [_icNo,_name,_cdaAc,_iCard,_bDay,_mAnn,_honours,_medCat,
+          _diag,_dueOn,_presAddr,_permtAddr,_teleNos,_emailIds,
+          _dob,_doc,_dor,_dom,_wife,_wifeBday,
+          _cYo,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cPwt,_cJc,_cSc,_cCdo,
+          _cQm,_cTac,_cRcl,_cRso,_cPt,_cDssc,_cBsw,_cOth,
+          _pLt,_pCapt,_pMaj,_pLtCol,_pCol,_pBrig,_pMajGen,_pLtGen,_cmdF,_cmdT]) {
       c.dispose();
     }
-    for (final c in [..._chName, ..._chDob, ..._svF, ..._svT]) c.dispose();
+    for (final c in [..._chName,..._chDob,..._svF,..._svT]) c.dispose();
     super.dispose();
   }
 
   void _populate(OfficerModel r) {
-    _icNo.text = r.icNo ?? '';
-    _name.text = r.name ?? '';
-    _cdaAc.text = r.cdaAcNo ?? '';
-    _iCard.text = r.iCardNo ?? '';
-    _bDay.text = r.bDay ?? '';
-    _mAnn.text = r.mAnn ?? '';
-    _honours.text = r.honoursAwards ?? '';
-    _medCat.text = r.medCat ?? '';
-    _diag.text = r.diag ?? '';
-    _dueOn.text = r.dueOn ?? '';
-    _presAddr.text = r.presentAddress ?? '';
-    _permtAddr.text = r.permtAddress ?? '';
-    _teleNos.text = r.teleNos ?? '';
-    _emailIds.text = r.emailIds ?? '';
-    _dob.text = r.dob ?? '';
-    _doc.text = r.doc ?? '';
-    _dor.text = r.dor ?? '';
-    _dom.text = r.dom ?? '';
-    _wife.text = r.wifeName ?? '';
-    _wifeBday.text = r.wifeBday ?? '';
-    _cYo.text = r.cYo ?? '';
-    _cMmg.text = r.cMmgAgl ?? '';
-    _cMor.text = r.cMorO ?? '';
-    _cSnip.text = r.cSniper ?? '';
-    _cAdp.text = r.cAdp ?? '';
-    _cAtgm.text = r.cAtgm ?? '';
-    _cPwt.text = r.cPwt ?? '';
-    _cJc.text = r.cJc ?? '';
-    _cSc.text = r.cSc ?? '';
-    _cCdo.text = r.cCdoGtk ?? '';
-    _cQm.text = r.cQmO ?? '';
-    _cTac.text = r.cTac ?? '';
-    _cRcl.text = r.cRcl ?? '';
-    _cRso.text = r.cRso ?? '';
-    _cPt.text = r.cPt ?? '';
-    _cDssc.text = r.cDssc ?? '';
-    _cBsw.text = r.cBswO ?? '';
-    _cOth.text = r.cOthers ?? '';
-    _pLt.text = r.pLt ?? '';
-    _pCapt.text = r.pCapt ?? '';
-    _pMaj.text = r.pMaj ?? '';
-    _pLtCol.text = r.pLtCol ?? '';
-    _pCol.text = r.pCol ?? '';
-    _pBrig.text = r.pBrig ?? '';
-    _pMajGen.text = r.pMajGen ?? '';
-    _pLtGen.text = r.pLtGen ?? '';
-    _cmdF.text = r.cmdF ?? '';
-    _cmdT.text = r.cmdT ?? '';
-    final chiN = [r.ch1Name, r.ch2Name, r.ch3Name, r.ch4Name];
-    final chiD = [r.ch1Dob, r.ch2Dob, r.ch3Dob, r.ch4Dob];
-    for (int i = 0; i < 4; i++) {
-      _chName[i].text = chiN[i] ?? '';
-      _chDob[i].text = chiD[i] ?? '';
-    }
-    final svf = [r.sv1F, r.sv2F, r.sv3F, r.sv4F];
-    final svt = [r.sv1T, r.sv2T, r.sv3T, r.sv4T];
-    for (int i = 0; i < 4; i++) {
-      _svF[i].text = svf[i] ?? '';
-      _svT[i].text = svt[i] ?? '';
-    }
+    _icNo.text=r.icNo??''; _name.text=r.name??''; _cdaAc.text=r.cdaAcNo??'';
+    _iCard.text=r.iCardNo??''; _bDay.text=r.bDay??''; _mAnn.text=r.mAnn??'';
+    _honours.text=r.honoursAwards??''; _medCat.text=r.medCat??'';
+    _diag.text=r.diag??''; _dueOn.text=r.dueOn??'';
+    _presAddr.text=r.presentAddress??''; _permtAddr.text=r.permtAddress??'';
+    _teleNos.text=r.teleNos??''; _emailIds.text=r.emailIds??'';
+    _dob.text=r.dob??''; _doc.text=r.doc??''; _dor.text=r.dor??'';
+    _dom.text=r.dom??'';
+    _wife.text=r.wifeName??''; _wifeBday.text=r.wifeBday??'';
+    _cYo.text=r.cYo??''; _cMmg.text=r.cMmgAgl??''; _cMor.text=r.cMorO??'';
+    _cSnip.text=r.cSniper??''; _cAdp.text=r.cAdp??''; _cAtgm.text=r.cAtgm??'';
+    _cPwt.text=r.cPwt??''; _cJc.text=r.cJc??''; _cSc.text=r.cSc??'';
+    _cCdo.text=r.cCdoGtk??''; _cQm.text=r.cQmO??''; _cTac.text=r.cTac??'';
+    _cRcl.text=r.cRcl??''; _cRso.text=r.cRso??''; _cPt.text=r.cPt??'';
+    _cDssc.text=r.cDssc??''; _cBsw.text=r.cBswO??''; _cOth.text=r.cOthers??'';
+    _pLt.text=r.pLt??''; _pCapt.text=r.pCapt??''; _pMaj.text=r.pMaj??'';
+    _pLtCol.text=r.pLtCol??''; _pCol.text=r.pCol??''; _pBrig.text=r.pBrig??'';
+    _pMajGen.text=r.pMajGen??''; _pLtGen.text=r.pLtGen??'';
+    _cmdF.text=r.cmdF??''; _cmdT.text=r.cmdT??'';
+    final chiN=[r.ch1Name,r.ch2Name,r.ch3Name,r.ch4Name];
+    final chiD=[r.ch1Dob,r.ch2Dob,r.ch3Dob,r.ch4Dob];
+    for (int i=0;i<4;i++) { _chName[i].text=chiN[i]??''; _chDob[i].text=chiD[i]??''; }
+    final svf=[r.sv1F,r.sv2F,r.sv3F,r.sv4F];
+    final svt=[r.sv1T,r.sv2T,r.sv3T,r.sv4T];
+    for (int i=0;i<4;i++) { _svF[i].text=svf[i]??''; _svT[i].text=svt[i]??''; }
     setState(() {
-      _rank = r.rank;
-      _bloodGp = r.bloodGp;
-      _status = r.status;
-      _photoPath = r.photoPath;
-      _domicile = r.domicile;
-      _chSex[0] = r.ch1Sex;
-      _chSex[1] = r.ch2Sex;
-      _chSex[2] = r.ch3Sex;
-      _chSex[3] = r.ch4Sex;
+      _rank=r.rank; _bloodGp=r.bloodGp; _status=r.status; _photoPath=r.photoPath;
+      _domicile=r.domicile;
+      _chSex[0]=r.ch1Sex; _chSex[1]=r.ch2Sex; _chSex[2]=r.ch3Sex; _chSex[3]=r.ch4Sex;
     });
   }
 
   void _clear() {
-    for (final c in [
-      _icNo,
-      _name,
-      _cdaAc,
-      _iCard,
-      _bDay,
-      _mAnn,
-      _honours,
-      _medCat,
-      _diag,
-      _dueOn,
-      _presAddr,
-      _permtAddr,
-      _teleNos,
-      _emailIds,
-      _dob,
-      _doc,
-      _dor,
-      _dom,
-      _wife,
-      _wifeBday,
-      _cYo,
-      _cMmg,
-      _cMor,
-      _cSnip,
-      _cAdp,
-      _cAtgm,
-      _cPwt,
-      _cJc,
-      _cSc,
-      _cCdo,
-      _cQm,
-      _cTac,
-      _cRcl,
-      _cRso,
-      _cPt,
-      _cDssc,
-      _cBsw,
-      _cOth,
-      _pLt,
-      _pCapt,
-      _pMaj,
-      _pLtCol,
-      _pCol,
-      _pBrig,
-      _pMajGen,
-      _pLtGen,
-      _cmdF,
-      _cmdT
-    ]) {
+    for (final c in [_icNo,_name,_cdaAc,_iCard,_bDay,_mAnn,_honours,_medCat,
+          _diag,_dueOn,_presAddr,_permtAddr,_teleNos,_emailIds,
+          _dob,_doc,_dor,_dom,_wife,_wifeBday,
+          _cYo,_cMmg,_cMor,_cSnip,_cAdp,_cAtgm,_cPwt,_cJc,_cSc,_cCdo,
+          _cQm,_cTac,_cRcl,_cRso,_cPt,_cDssc,_cBsw,_cOth,
+          _pLt,_pCapt,_pMaj,_pLtCol,_pCol,_pBrig,_pMajGen,_pLtGen,_cmdF,_cmdT]) {
       c.clear();
     }
-    for (final c in [..._chName, ..._chDob, ..._svF, ..._svT]) c.clear();
+    for (final c in [..._chName,..._chDob,..._svF,..._svT]) c.clear();
     setState(() {
-      _rank = null;
-      _bloodGp = null;
-      _status = null;
-      _photoPath = null;
-      _domicile = null;
-      for (int i = 0; i < 4; i++) _chSex[i] = null;
+      _rank=null; _bloodGp=null; _status=null; _photoPath=null; _domicile=null;
+      for (int i=0;i<4;i++) _chSex[i]=null;
     });
   }
 
   OfficerModel _buildModel() {
     final m = OfficerModel(
         subCategory: widget.subCategory, id: widget.record?.id ?? _savedId);
-    m.icNo = _icNo.text.trim();
-    m.rank = _rank;
-    m.name = _name.text.trim();
-    m.bloodGp = _bloodGp;
-    m.dob = _dob.text;
-    m.doc = _doc.text;
-    m.dor = _dor.text;
-    m.dom = _dom.text;
-    m.domicile = _domicile;
-    m.cdaAcNo = _cdaAc.text.trim();
-    m.iCardNo = _iCard.text.trim();
-    m.bDay = _bDay.text;
-    m.mAnn = _mAnn.text;
-    m.honoursAwards = _honours.text.trim();
-    m.medCat = _medCat.text.trim();
-    m.diag = _diag.text.trim();
-    m.dueOn = _dueOn.text;
-    m.presentAddress = _presAddr.text.trim();
-    m.permtAddress = _permtAddr.text.trim();
-    m.status = _status;
-    m.teleNos = _teleNos.text.trim();
-    m.emailIds = _emailIds.text.trim();
-    m.photoPath = _photoPath;
-    m.wifeName = _wife.text.trim();
-    m.wifeBday = _wifeBday.text;
-    m.ch1Name = _chName[0].text;
-    m.ch1Sex = _chSex[0];
-    m.ch1Dob = _chDob[0].text;
-    m.ch2Name = _chName[1].text;
-    m.ch2Sex = _chSex[1];
-    m.ch2Dob = _chDob[1].text;
-    m.ch3Name = _chName[2].text;
-    m.ch3Sex = _chSex[2];
-    m.ch3Dob = _chDob[2].text;
-    m.ch4Name = _chName[3].text;
-    m.ch4Sex = _chSex[3];
-    m.ch4Dob = _chDob[3].text;
-    m.cYo = _cYo.text;
-    m.cMmgAgl = _cMmg.text;
-    m.cMorO = _cMor.text;
-    m.cSniper = _cSnip.text;
-    m.cAdp = _cAdp.text;
-    m.cAtgm = _cAtgm.text;
-    m.cPwt = _cPwt.text;
-    m.cJc = _cJc.text;
-    m.cSc = _cSc.text;
-    m.cCdoGtk = _cCdo.text;
-    m.cQmO = _cQm.text;
-    m.cTac = _cTac.text;
-    m.cRcl = _cRcl.text;
-    m.cRso = _cRso.text;
-    m.cPt = _cPt.text;
-    m.cDssc = _cDssc.text;
-    m.cBswO = _cBsw.text;
-    m.cOthers = _cOth.text;
-    m.pLt = _pLt.text;
-    m.pCapt = _pCapt.text;
-    m.pMaj = _pMaj.text;
-    m.pLtCol = _pLtCol.text;
-    m.pCol = _pCol.text;
-    m.pBrig = _pBrig.text;
-    m.pMajGen = _pMajGen.text;
-    m.pLtGen = _pLtGen.text;
-    m.sv1F = _svF[0].text;
-    m.sv1T = _svT[0].text;
-    m.sv2F = _svF[1].text;
-    m.sv2T = _svT[1].text;
-    m.sv3F = _svF[2].text;
-    m.sv3T = _svT[2].text;
-    m.sv4F = _svF[3].text;
-    m.sv4T = _svT[3].text;
-    m.cmdF = _cmdF.text;
-    m.cmdT = _cmdT.text;
+    m.icNo=_icNo.text.trim(); m.rank=_rank; m.name=_name.text.trim();
+    m.bloodGp=_bloodGp; m.dob=_dob.text; m.doc=_doc.text; m.dor=_dor.text;
+    m.dom=_dom.text; m.domicile=_domicile;
+    m.cdaAcNo=_cdaAc.text.trim(); m.iCardNo=_iCard.text.trim();
+    m.bDay=_bDay.text; m.mAnn=_mAnn.text;
+    m.honoursAwards=_honours.text.trim(); m.medCat=_medCat.text.trim();
+    m.diag=_diag.text.trim(); m.dueOn=_dueOn.text;
+    m.presentAddress=_presAddr.text.trim(); m.permtAddress=_permtAddr.text.trim();
+    m.status=_status; m.teleNos=_teleNos.text.trim();
+    m.emailIds=_emailIds.text.trim(); m.photoPath=_photoPath;
+    m.wifeName=_wife.text.trim(); m.wifeBday=_wifeBday.text;
+    m.ch1Name=_chName[0].text; m.ch1Sex=_chSex[0]; m.ch1Dob=_chDob[0].text;
+    m.ch2Name=_chName[1].text; m.ch2Sex=_chSex[1]; m.ch2Dob=_chDob[1].text;
+    m.ch3Name=_chName[2].text; m.ch3Sex=_chSex[2]; m.ch3Dob=_chDob[2].text;
+    m.ch4Name=_chName[3].text; m.ch4Sex=_chSex[3]; m.ch4Dob=_chDob[3].text;
+    m.cYo=_cYo.text; m.cMmgAgl=_cMmg.text; m.cMorO=_cMor.text;
+    m.cSniper=_cSnip.text; m.cAdp=_cAdp.text; m.cAtgm=_cAtgm.text;
+    m.cPwt=_cPwt.text; m.cJc=_cJc.text; m.cSc=_cSc.text;
+    m.cCdoGtk=_cCdo.text; m.cQmO=_cQm.text; m.cTac=_cTac.text;
+    m.cRcl=_cRcl.text; m.cRso=_cRso.text; m.cPt=_cPt.text;
+    m.cDssc=_cDssc.text; m.cBswO=_cBsw.text; m.cOthers=_cOth.text;
+    m.pLt=_pLt.text; m.pCapt=_pCapt.text; m.pMaj=_pMaj.text;
+    m.pLtCol=_pLtCol.text; m.pCol=_pCol.text; m.pBrig=_pBrig.text;
+    m.pMajGen=_pMajGen.text; m.pLtGen=_pLtGen.text;
+    m.sv1F=_svF[0].text; m.sv1T=_svT[0].text;
+    m.sv2F=_svF[1].text; m.sv2T=_svT[1].text;
+    m.sv3F=_svF[2].text; m.sv3T=_svT[2].text;
+    m.sv4F=_svF[3].text; m.sv4T=_svT[3].text;
+    m.cmdF=_cmdF.text; m.cmdT=_cmdT.text;
     return m;
   }
 
   Future<void> _save() async {
     if (_name.text.trim().isEmpty) {
-      showSnack(context, 'Name is required.', error: true);
-      return;
+      showSnack(context, 'Name is required.', error: true); return;
     }
     if (_icNo.text.trim().isEmpty) {
-      showSnack(context, 'IC No is required.', error: true);
-      return;
+      showSnack(context, 'IC No is required.', error: true); return;
     }
-    setState(() => _saving = true);
+    setState(() => _saving = true); widget.onReady(this);
     try {
       final m = _buildModel();
       final dup = await _db.officerIcNoExists(m.icNo, excludeId: m.id);
       if (dup) {
-        if (mounted)
-          showSnack(context,
-              'IC No "${m.icNo}" already exists — cannot save duplicate.',
-              error: true);
-        if (mounted) setState(() => _saving = false);
+        if (mounted) showSnack(context, 'IC No "${m.icNo}" already exists — cannot save duplicate.', error: true);
+        if (mounted) { setState(() => _saving = false); widget.onReady(this); }
         return;
       }
-      if (m.id == null) {
-        _savedId = await _db.insertOfficer(m);
-      } else
-        await _db.updateOfficer(m);
+      if (m.id == null) { _savedId = await _db.insertOfficer(m); }
+      else await _db.updateOfficer(m);
       if (mounted) {
         showSnack(context, m.id == null ? 'Record saved.' : 'Record updated.');
         widget.onSaved();
@@ -427,7 +232,7 @@ class _OfficerCardState extends State<OfficerCard> {
     } catch (e) {
       if (mounted) showSnack(context, 'Error: $e', error: true);
     }
-    if (mounted) setState(() => _saving = false);
+    if (mounted) { setState(() => _saving = false); widget.onReady(this); }
   }
 
   Future<void> _delete() async {
@@ -436,10 +241,7 @@ class _OfficerCardState extends State<OfficerCard> {
         'Permanently delete "${widget.record!.name}"?');
     if (!ok) return;
     await _db.deleteOfficer(widget.record!.id!);
-    if (mounted) {
-      showSnack(context, 'Record deleted.');
-      widget.onSaved();
-    }
+    if (mounted) { showSnack(context, 'Record deleted.'); widget.onSaved(); }
   }
 
   Future<void> _pickPhoto() async {
@@ -456,256 +258,139 @@ class _OfficerCardState extends State<OfficerCard> {
       pickDate(context, c).then((_) => setState(() {}));
 
   // ── helpers ───────────────────────────────────────────────────────────────
-  Widget _f(String label, TextEditingController c, {double w = 210}) =>
-      SizedBox(
-          width: w,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(label.toUpperCase(), style: kLabelStyle)),
-                TextField(
-                    controller: c, style: kFieldStyle, decoration: kDec()),
-              ]));
+  Widget _f(String label, TextEditingController c, {double w=210}) => SizedBox(
+    width: w, child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min, children: [
+      Padding(padding: const EdgeInsets.only(bottom:4),
+          child: Text(label.toUpperCase(), style: kLabelStyle)),
+      TextField(controller: c, style: kFieldStyle, decoration: kDec()),
+    ]));
 
-  Widget _fDate(String label, TextEditingController c, {double w = 160}) =>
-      SizedBox(
-          width: w,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(label.toUpperCase(), style: kLabelStyle)),
-                TextField(
-                    controller: c,
-                    readOnly: true,
-                    style: kFieldStyle,
-                    onTap: () => _pd(c),
-                    decoration: kDec().copyWith(
-                        suffixIcon: const Icon(Icons.calendar_today_outlined,
-                            size: 14))),
-              ]));
+  Widget _fDate(String label, TextEditingController c, {double w=160}) => SizedBox(
+    width: w, child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min, children: [
+      Padding(padding: const EdgeInsets.only(bottom:4),
+          child: Text(label.toUpperCase(), style: kLabelStyle)),
+      TextField(controller: c, readOnly: true, style: kFieldStyle,
+          onTap: () => _pd(c),
+          decoration: kDec().copyWith(
+              suffixIcon: const Icon(Icons.calendar_today_outlined, size:14))),
+    ]));
 
-  Widget _fMulti(String label, TextEditingController c, {double w = 440}) =>
-      SizedBox(
-          width: w,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(label.toUpperCase(), style: kLabelStyle)),
-                TextField(
-                    controller: c,
-                    maxLines: 2,
-                    style: kFieldStyle,
-                    decoration: kDec()),
-              ]));
+  Widget _fMulti(String label, TextEditingController c, {double w=440}) => SizedBox(
+    width: w, child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min, children: [
+      Padding(padding: const EdgeInsets.only(bottom:4),
+          child: Text(label.toUpperCase(), style: kLabelStyle)),
+      TextField(controller: c, maxLines:2, style: kFieldStyle, decoration: kDec()),
+    ]));
 
-  Widget _dd(String label, String? val, List<String> opts,
-          void Function(String?) cb, {double w = 170}) =>
-      SizedBox(
-          width: w,
-          child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                    padding: const EdgeInsets.only(bottom: 4),
-                    child: Text(label.toUpperCase(), style: kLabelStyle)),
-                DropdownButtonFormField<String>(
-                    value: val,
-                    isExpanded: true,
-                    style: kFieldStyle.copyWith(color: kInk),
-                    items: opts
-                        .map((o) => DropdownMenuItem(
-                            value: o, child: Text(o, style: kFieldStyle)))
-                        .toList(),
-                    onChanged: cb),
-              ]));
+  Widget _dd(String label, String? val, List<String> opts, void Function(String?) cb, {double w=170}) =>
+    SizedBox(width: w, child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+    mainAxisSize: MainAxisSize.min, children: [
+      Padding(padding: const EdgeInsets.only(bottom:4),
+          child: Text(label.toUpperCase(), style: kLabelStyle)),
+      DropdownButtonFormField<String>(value: val, isExpanded: true,
+          style: kFieldStyle.copyWith(color: kInk),
+          items: opts.map((o) => DropdownMenuItem(value:o, child: Text(o, style: kFieldStyle))).toList(),
+          onChanged: cb),
+    ]));
 
   @override
   Widget build(BuildContext context) {
     return Column(children: [
       // Card title
-      Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-          color: const Color(0xFFE8E9EC),
-          child: Text(SubCat.cardTitle(widget.subCategory),
-              style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: .4,
-                  color: kSlate))),
+      Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+        color: const Color(0xFFE8E9EC),
+        child: Text(SubCat.cardTitle(widget.subCategory),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: .4, color: kSlate))),
       const SizedBox(height: 14),
       // Pers Details
-      CardSection(
-          title: 'Pers Details',
-          child: Column(children: [
-            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Expanded(
-                  child: Wrap(spacing: 14, runSpacing: 14, children: [
-                _f('IC No', _icNo, w: 170),
-                _dd('Rank', _rank, kOfficerRanks,
-                    (v) => setState(() => _rank = v),
-                    w: 150),
-                _f('Name', _name, w: 300),
-                _dd('Blood Gp', _bloodGp, kBlood,
-                    (v) => setState(() => _bloodGp = v),
-                    w: 120),
-                _fDate('DOB', _dob, w: 150),
-                _fDate('DOC', _doc, w: 150),
-                _fDate('DOR', _dor, w: 150),
-                _fDate('DOM', _dom, w: 150),
-                _dd('Domicile', _domicile, kDomicile,
-                    (v) => setState(() => _domicile = v),
-                    w: 150),
-                _f('CDA (O) A/C No', _cdaAc, w: 200),
-                _f('I Card No', _iCard, w: 170),
-                _fDate('B. Day', _bDay, w: 150),
-                _fDate('M. Ann', _mAnn, w: 150),
-                _f('Med Cat', _medCat, w: 140),
-                _f('Diag', _diag, w: 200),
-                _fDate('Due On', _dueOn, w: 150),
-                _dd('Status', _status, kOfficerStatus,
-                    (v) => setState(() => _status = v),
-                    w: 170),
-                _f('Tele Nos', _teleNos, w: 210),
-                _f('Email Ids', _emailIds, w: 270),
-                _fMulti('Honours and Awards', _honours),
-                _fMulti('Present Address', _presAddr),
-                _fMulti('Permt Address', _permtAddr),
-              ])),
-              const SizedBox(width: 16),
-              PhotoBox(photoPath: _photoPath, onTap: _pickPhoto),
-            ]),
+      CardSection(title: 'Pers Details', child: Column(children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(child: Wrap(spacing:14, runSpacing:14, children: [
+            _f('IC No', _icNo, w:170),
+            _dd('Rank', _rank, kOfficerRanks, (v)=>setState(()=>_rank=v), w:150),
+            _f('Name', _name, w:300),
+            _dd('Blood Gp', _bloodGp, kBlood, (v)=>setState(()=>_bloodGp=v), w:120),
+            _fDate('DOB', _dob, w:150), _fDate('DOC', _doc, w:150),
+            _fDate('DOR', _dor, w:150), _fDate('DOM', _dom, w:150),
+            _dd('Domicile', _domicile, kDomicile, (v)=>setState(()=>_domicile=v), w:150),
+            _f('CDA (O) A/C No', _cdaAc, w:200), _f('I Card No', _iCard, w:170),
+            _fDate('B. Day', _bDay, w:150), _fDate('M. Ann', _mAnn, w:150),
+            _f('Med Cat', _medCat, w:140), _f('Diag', _diag, w:200),
+            _fDate('Due On', _dueOn, w:150),
+            _dd('Status', _status, kOfficerStatus, (v)=>setState(()=>_status=v), w:170),
+            _f('Tele Nos', _teleNos, w:210), _f('Email Ids', _emailIds, w:270),
+            _fMulti('Honours and Awards', _honours),
+            _fMulti('Present Address', _presAddr),
+            _fMulti('Permt Address', _permtAddr),
           ])),
+          const SizedBox(width:16),
+          PhotoBox(photoPath: _photoPath, onTap: _pickPhoto),
+        ]),
+      ])),
       // Kindred Roll
-      CardSection(
-          title: 'Kindred Roll',
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Wrap(spacing: 14, runSpacing: 14, children: [
-              _f('Wife', _wife, w: 280),
-              _fDate('B. Day', _wifeBday, w: 150),
-            ]),
-            const SizedBox(height: 14),
-            const SubLabel('Children'),
-            _childrenTable(),
-          ])),
+      CardSection(title: 'Kindred Roll', child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Wrap(spacing:14, runSpacing:14, children: [
+          _f('Wife', _wife, w:280), _fDate('B. Day', _wifeBday, w:150),
+        ]),
+        const SizedBox(height:14),
+        const SubLabel('Children'),
+        _childrenTable(),
+      ])),
       // Army Courses
-      CardSection(
-          title: 'Army Courses',
-          child: Wrap(spacing: 14, runSpacing: 14, children: [
-            _f('YO', _cYo, w: 140),
-            _f('MMG AGL', _cMmg, w: 140),
-            _f('MOR (O)', _cMor, w: 140),
-            _f('Sniper', _cSnip, w: 140),
-            _f('ADP', _cAdp, w: 140),
-            _f('ATGM', _cAtgm, w: 140),
-            _f('PWT', _cPwt, w: 140),
-            _f('JC', _cJc, w: 140),
-            _f('SC', _cSc, w: 140),
-            _f('CDO/GTK', _cCdo, w: 140),
-            _f('QM (O)', _cQm, w: 140),
-            _f('TAC', _cTac, w: 140),
-            _f('RCL', _cRcl, w: 140),
-            _f('RSO', _cRso, w: 140),
-            _f('PT', _cPt, w: 140),
-            _f('DSSC', _cDssc, w: 140),
-            _f('BSW (O)', _cBsw, w: 140),
-            _f('Others', _cOth, w: 140),
-          ])),
+      CardSection(title: 'Army Courses', child: Wrap(spacing:14, runSpacing:14, children: [
+        _f('YO',_cYo,w:140), _f('MMG AGL',_cMmg,w:140), _f('MOR (O)',_cMor,w:140),
+        _f('Sniper',_cSnip,w:140), _f('ADP',_cAdp,w:140), _f('ATGM',_cAtgm,w:140), _f('PWT',_cPwt,w:140),
+        _f('JC',_cJc,w:140), _f('SC',_cSc,w:140), _f('CDO/GTK',_cCdo,w:140),
+        _f('QM (O)',_cQm,w:140), _f('TAC',_cTac,w:140), _f('RCL',_cRcl,w:140), _f('RSO',_cRso,w:140),
+        _f('PT',_cPt,w:140), _f('DSSC',_cDssc,w:140), _f('BSW (O)',_cBsw,w:140), _f('Others',_cOth,w:140),
+      ])),
       // Promotions
-      CardSection(
-          title: 'Promotions',
-          child: Wrap(spacing: 14, runSpacing: 14, children: [
-            _fDate('LT', _pLt, w: 150),
-            _fDate('Capt', _pCapt, w: 150),
-            _fDate('Maj', _pMaj, w: 150),
-            _fDate('Lt Col', _pLtCol, w: 150),
-            _fDate('Col', _pCol, w: 150),
-            _fDate('Brig', _pBrig, w: 150),
-            _fDate('Maj Gen', _pMajGen, w: 150),
-            _fDate('Lt Gen', _pLtGen, w: 150),
-          ])),
+      CardSection(title: 'Promotions', child: Wrap(spacing:14, runSpacing:14, children: [
+        _fDate('LT',_pLt,w:150), _fDate('Capt',_pCapt,w:150), _fDate('Maj',_pMaj,w:150),
+        _fDate('Lt Col',_pLtCol,w:150), _fDate('Col',_pCol,w:150), _fDate('Brig',_pBrig,w:150),
+        _fDate('Maj Gen',_pMajGen,w:150), _fDate('Lt Gen',_pLtGen,w:150),
+      ])),
       // Service in Unit
-      CardSection(
-          title: 'Service in Unit',
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            _serviceTable(),
-            const SizedBox(height: 14),
-            const SubLabel('Command Tenure'),
-            Wrap(spacing: 14, runSpacing: 14, children: [
-              _fDate('From', _cmdF, w: 170),
-              _fDate('To', _cmdT, w: 170),
-            ]),
-          ])),
-      const SizedBox(height: 8),
-      // Footer
-      BipFooter(
-        isEditing: widget.record != null,
-        isSaving: _saving,
-        onSave: _save,
-        onDelete: _delete,
-        onClear: _clear,
-        onFind: () => showSnack(context, 'Use the filter panel on the right.'),
-        onPrint: () => showSnack(context, 'Print: coming soon.'),
-        onExit: widget.onExit,
-      ),
+      CardSection(title: 'Service in Unit', child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _serviceTable(),
+        const SizedBox(height:14),
+        const SubLabel('Command Tenure'),
+        Wrap(spacing:14, runSpacing:14, children: [
+          _fDate('From', _cmdF, w:170), _fDate('To', _cmdT, w:170),
+        ]),
+      ])),
+      const SizedBox(height:20),
     ]);
   }
 
   Widget _childrenTable() {
     return Table(
-      columnWidths: const {
-        0: FlexColumnWidth(3),
-        1: FlexColumnWidth(1),
-        2: FlexColumnWidth(2)
-      },
+      columnWidths: const {0: FlexColumnWidth(3), 1: FlexColumnWidth(1), 2: FlexColumnWidth(2)},
       children: [
         TableRow(children: [
-          _tHdr('Children Name'),
-          _tHdr('Gender'),
-          _tHdr('DOB'),
+          _tHdr('Children Name'), _tHdr('Gender'), _tHdr('DOB'),
         ]),
-        for (int i = 0; i < 4; i++)
-          TableRow(children: [
-            Padding(
-                padding: const EdgeInsets.only(bottom: 8, right: 10),
-                child: TextField(
-                    controller: _chName[i],
-                    style: kFieldStyle,
-                    decoration: kDec())),
-            Padding(
-                padding: const EdgeInsets.only(bottom: 8, right: 10),
-                child: DropdownButtonFormField<String>(
-                  value: _chSex[i],
-                  isExpanded: true,
-                  style: kFieldStyle.copyWith(color: kInk),
-                  items: kSex
-                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                      .toList(),
-                  onChanged: (v) => setState(() => _chSex[i] = v),
-                )),
-            Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextField(
-                    controller: _chDob[i],
-                    readOnly: true,
-                    style: kFieldStyle,
-                    onTap: () => _pd(_chDob[i]),
-                    decoration: kDec().copyWith(
-                        suffixIcon: const Icon(Icons.calendar_today_outlined,
-                            size: 14)))),
-          ]),
+        for (int i = 0; i < 4; i++) TableRow(children: [
+          Padding(padding: const EdgeInsets.only(bottom:8, right:10),
+              child: TextField(controller: _chName[i], style: kFieldStyle, decoration: kDec())),
+          Padding(padding: const EdgeInsets.only(bottom:8, right:10),
+              child: DropdownButtonFormField<String>(
+                value: _chSex[i], isExpanded: true,
+                style: kFieldStyle.copyWith(color: kInk),
+                items: kSex.map((s) => DropdownMenuItem(value:s, child:Text(s))).toList(),
+                onChanged: (v) => setState(() => _chSex[i] = v),
+              )),
+          Padding(padding: const EdgeInsets.only(bottom:8),
+              child: TextField(controller: _chDob[i], readOnly: true,
+                  style: kFieldStyle, onTap: () => _pd(_chDob[i]),
+                  decoration: kDec().copyWith(
+                      suffixIcon: const Icon(Icons.calendar_today_outlined, size:14)))),
+        ]),
       ],
     );
   }
@@ -715,34 +400,23 @@ class _OfficerCardState extends State<OfficerCard> {
       columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(1)},
       children: [
         TableRow(children: [_tHdr('From'), _tHdr('To')]),
-        for (int i = 0; i < 4; i++)
-          TableRow(children: [
-            Padding(
-                padding: const EdgeInsets.only(bottom: 8, right: 10),
-                child: TextField(
-                    controller: _svF[i],
-                    readOnly: true,
-                    style: kFieldStyle,
-                    onTap: () => _pd(_svF[i]),
-                    decoration: kDec().copyWith(
-                        suffixIcon: const Icon(Icons.calendar_today_outlined,
-                            size: 14)))),
-            Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: TextField(
-                    controller: _svT[i],
-                    readOnly: true,
-                    style: kFieldStyle,
-                    onTap: () => _pd(_svT[i]),
-                    decoration: kDec().copyWith(
-                        suffixIcon: const Icon(Icons.calendar_today_outlined,
-                            size: 14)))),
-          ]),
+        for (int i = 0; i < 4; i++) TableRow(children: [
+          Padding(padding: const EdgeInsets.only(bottom:8, right:10),
+              child: TextField(controller: _svF[i], readOnly: true,
+                  style: kFieldStyle, onTap: () => _pd(_svF[i]),
+                  decoration: kDec().copyWith(
+                      suffixIcon: const Icon(Icons.calendar_today_outlined, size:14)))),
+          Padding(padding: const EdgeInsets.only(bottom:8),
+              child: TextField(controller: _svT[i], readOnly: true,
+                  style: kFieldStyle, onTap: () => _pd(_svT[i]),
+                  decoration: kDec().copyWith(
+                      suffixIcon: const Icon(Icons.calendar_today_outlined, size:14)))),
+        ]),
       ],
     );
   }
 
   Widget _tHdr(String t) => Padding(
-      padding: const EdgeInsets.only(bottom: 6, left: 2),
-      child: Text(t.toUpperCase(), style: kLabelStyle));
+    padding: const EdgeInsets.only(bottom: 6, left: 2),
+    child: Text(t.toUpperCase(), style: kLabelStyle));
 }
