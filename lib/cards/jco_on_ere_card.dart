@@ -843,7 +843,7 @@ class _JcoOnEreCardState extends State<JcoOnEreCard> implements CardController {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
           alignment: Alignment.center,
           decoration: const BoxDecoration(
-              color: Color(0xFFE8E9EC),
+              color: kGold,
               border: Border(bottom: BorderSide(color: kAccentBlue, width: 2))),
           child: const Text('JCOs OR (ON ERE) : DATA CARD',
               textAlign: TextAlign.center,

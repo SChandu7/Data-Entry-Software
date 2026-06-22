@@ -420,101 +420,92 @@ class _FilterEngineState extends State<FilterEngine> {
       7: const FixedColumnWidth(80),
       8: const FixedColumnWidth(100)
     };
+    // The card always fills the full width of the results pane. Only the
+    // Table itself scrolls horizontally when there are too many columns
+    // (e.g. several "has X record" filters active) to fit — so a short
+    // table doesn't leave grey page background showing on the right.
     return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
-        child: Center(
-            child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1100),
-                child: Container(
-                    color: Colors.white,
-                    padding: const EdgeInsets.all(28),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(children: [
-                            const Expanded(
-                                child: Text('FILTER ENGINE — RESULTS',
-                                    style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900))),
-                            OutlinedButton.icon(
-                                onPressed: _print,
-                                icon: const Icon(Icons.print_outlined,
-                                    size: 16, color: kSlate),
-                                label: const Text('Print / PDF',
-                                    style:
-                                        TextStyle(color: kSlate, fontSize: 12)),
-                                style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: kSlate),
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 14, vertical: 8))),
-                          ]),
-                          if (_activeExtraCols.isNotEmpty)
-                            Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Text(
-                                    'Showing extra columns for: ${_activeExtraCols.map((c) => c.$1).join(", ")}',
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        color: kAccentBlue,
-                                        fontStyle: FontStyle.italic))),
-                          const SizedBox(height: 18),
-                          SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Table(
-                                  border: TableBorder.all(
-                                      color: const Color(0xFFCCCFD4),
-                                      width: .6),
-                                  // Fixed widths everywhere (incl. default for the dynamic extra
-                                  // columns) — FlexColumnWidth breaks inside a horizontally
-                                  // scrolling Table since the scroll view gives it unbounded width.
-                                  defaultColumnWidth:
-                                      const FixedColumnWidth(130),
-                                  columnWidths: baseWidths,
-                                  children: [
-                                    TableRow(
-                                        decoration: const BoxDecoration(
-                                            color: Color(0xFFE8EAED)),
-                                        children: [
-                                          'S/No',
-                                          'Type',
-                                          'Army No',
-                                          'Rank',
-                                          'Name',
-                                          'Coy',
-                                          'Blood Gp',
-                                          'Domicile',
-                                          'Civ Edn',
-                                          ..._activeExtraCols.map((c) => c.$1)
-                                        ].map((h) => _th(h)).toList()),
-                                    for (int i = 0; i < _results.length; i++)
-                                      TableRow(
-                                          decoration: BoxDecoration(
-                                              color: i.isEven
-                                                  ? Colors.white
-                                                  : const Color(0xFFF8F9FB)),
-                                          children: [
-                                            _td('${i + 1}'),
-                                            _typeBadge(
-                                                _s(_results[i], 'ptype')),
-                                            _td(_s(_results[i], 'army_no'),
-                                                bold: true),
-                                            _td(_s(_results[i], 'rank')),
-                                            _td(_s(_results[i], 'name'),
-                                                bold: true),
-                                            _td(_s(_results[i], 'coy')),
-                                            _td(_s(_results[i], 'blood_gp')),
-                                            _td(_s(_results[i], 'domicile')),
-                                            _td(_s(_results[i], 'civ_edn')),
-                                            ..._activeExtraCols.map((c) =>
-                                                _td(_s(_results[i], c.$2))),
-                                          ]),
-                                  ])),
-                          const SizedBox(height: 16),
-                          Text('Total: ${_results.length}',
-                              style: const TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600)),
-                        ])))));
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: Container(
+            width: double.infinity,
+            color: Colors.white,
+            padding: const EdgeInsets.all(28),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                const Text('FILTER ENGINE — RESULTS',
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.w900)),
+                const Spacer(),
+                OutlinedButton.icon(
+                    onPressed: _print,
+                    icon: const Icon(Icons.print_outlined,
+                        size: 16, color: kSlate),
+                    label: const Text('Print / PDF',
+                        style: TextStyle(color: kSlate, fontSize: 12)),
+                    style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: kSlate),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8))),
+              ]),
+              if (_activeExtraCols.isNotEmpty)
+                Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                        'Showing extra columns for: ${_activeExtraCols.map((c) => c.$1).join(", ")}',
+                        style: const TextStyle(
+                            fontSize: 11,
+                            color: kAccentBlue,
+                            fontStyle: FontStyle.italic))),
+              const SizedBox(height: 18),
+              SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Table(
+                      border: TableBorder.all(
+                          color: const Color(0xFFCCCFD4), width: .6),
+                      defaultColumnWidth: const FixedColumnWidth(130),
+                      columnWidths: baseWidths,
+                      children: [
+                        TableRow(
+                            decoration:
+                                const BoxDecoration(color: Color(0xFFE8EAED)),
+                            children: [
+                              'S/No',
+                              'Type',
+                              'Army No',
+                              'Rank',
+                              'Name',
+                              'Coy',
+                              'Blood Gp',
+                              'Domicile',
+                              'Civ Edn',
+                              ..._activeExtraCols.map((c) => c.$1)
+                            ].map((h) => _th(h)).toList()),
+                        for (int i = 0; i < _results.length; i++)
+                          TableRow(
+                              decoration: BoxDecoration(
+                                  color: i.isEven
+                                      ? Colors.white
+                                      : const Color(0xFFF8F9FB)),
+                              children: [
+                                _td('${i + 1}'),
+                                _typeBadge(_s(_results[i], 'ptype')),
+                                _td(_s(_results[i], 'army_no'), bold: true),
+                                _td(_s(_results[i], 'rank')),
+                                _td(_s(_results[i], 'name'), bold: true),
+                                _td(_s(_results[i], 'coy')),
+                                _td(_s(_results[i], 'blood_gp')),
+                                _td(_s(_results[i], 'domicile')),
+                                _td(_s(_results[i], 'civ_edn')),
+                                ..._activeExtraCols
+                                    .map((c) => _td(_s(_results[i], c.$2))),
+                              ]),
+                      ])),
+              const SizedBox(height: 16),
+              Text('Total: ${_results.length}',
+                  style: const TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600)),
+            ])));
   }
 
   Widget _dd(
