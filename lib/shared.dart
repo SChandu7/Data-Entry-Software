@@ -607,7 +607,7 @@ class AdminSub {
     return m[s] ?? s;
   }
 
-  static const all = [leave, health, ere, outStr, firing, cpt, filterEngine];
+  static const all = [filterEngine, leave, health, ere, outStr, firing, cpt];
 }
 
 // ── Leave sub-heading constants ────────────────────────────────────────────
@@ -792,7 +792,7 @@ class OutStrSub {
 }
 
 // ── Miscellaneous: Firing & CPT ─────────────────────────────────────────────
-const kFiringResults = ['MM', 'FC', 'SS'];
+const kFiringResults = ['MM', 'FC', 'SS', 'Fail'];
 const kCptResults = ['Super Ex', 'Ex', 'Good', 'Sat', 'Fail'];
 
 class MiscSub {

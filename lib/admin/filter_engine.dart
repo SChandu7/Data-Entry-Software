@@ -19,7 +19,7 @@ class _FilterEngineState extends State<FilterEngine> {
 
   bool _includeOfficers = true;
   bool _includeJco = true;
-  String? _rank, _bloodGp, _domicile, _civEdn, _coy, _ageBracket;
+  String? _rank, _bloodGp, _domicile, _civEdn, _coy, _ageBracket, _course;
   bool _hasLeave = false,
       _hasHealth = false,
       _hasEre = false,
@@ -28,13 +28,40 @@ class _FilterEngineState extends State<FilterEngine> {
       _hasCpt = false;
 
   static const _ageBrackets = ['Under 30', '30 - 40', '40 - 50', 'Over 50'];
+  // All distinct army courses stored across both officers and jco_or
+  static const _courseOptions = [
+    'YO',
+    'MMG AGL',
+    'MOR (O)',
+    'Sniper',
+    'ADP',
+    'ATGM',
+    'PWT',
+    'JC',
+    'SC',
+    'CDO/GTK',
+    'QM (O)',
+    'TAC',
+    'RCL',
+    'RSO',
+    'PT',
+    'DSSC',
+    'BSW (O)',
+    'SEC',
+    'Others',
+  ];
 
   List<Map<String, dynamic>> _results = [];
-  // Snapshot of which "has X" columns are active, taken at search time so the
-  // results table/print stay stable even if checkboxes change afterwards.
   List<(String, String)> _activeExtraCols = [];
   bool _loading = false;
   bool _searched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-load all records when the tab opens
+    WidgetsBinding.instance.addPostFrameCallback((_) => _runSearch());
+  }
 
   @override
   void dispose() {
@@ -84,6 +111,7 @@ class _FilterEngineState extends State<FilterEngine> {
       civEdn: _civEdn,
       coy: _coy,
       medCatContains: _medCat.text,
+      course: _course,
       hasLeave: _hasLeave,
       hasHealth: _hasHealth,
       hasEre: _hasEre,
@@ -139,6 +167,7 @@ class _FilterEngineState extends State<FilterEngine> {
       _civEdn = null;
       _coy = null;
       _ageBracket = null;
+      _course = null;
       _hasLeave = false;
       _hasHealth = false;
       _hasEre = false;
@@ -149,6 +178,7 @@ class _FilterEngineState extends State<FilterEngine> {
       _activeExtraCols = [];
       _searched = false;
     });
+    _runSearch();
   }
 
   String _s(Map m, String k) =>
@@ -221,6 +251,7 @@ class _FilterEngineState extends State<FilterEngine> {
   @override
   Widget build(BuildContext context) {
     return Column(children: [
+      // ── Top header bar ───────────────────────────────────────────────────
       Container(
           color: kHeader,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -235,155 +266,201 @@ class _FilterEngineState extends State<FilterEngine> {
           ])),
       Expanded(
           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        // Left: filter panel
+        // ── Left filter panel ─────────────────────────────────────────────
         SizedBox(
-            width: 340,
+            width: 320,
             child: Container(
                 color: kSurface,
-                child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SectionHeader('Search', icon: Icons.search),
-                          const SizedBox(height: 12),
-                          TextField(
-                              controller: _search,
-                              style: kFieldStyle,
-                              decoration: kDec('Name or Army No / IC No...')),
-                          const SizedBox(height: 18),
-                          const SectionHeader('Personnel Type',
-                              icon: Icons.groups_outlined),
-                          const SizedBox(height: 10),
-                          CheckboxListTile(
-                              value: _includeOfficers,
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              title: const Text('Officers',
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                              activeColor: kGold,
-                              checkColor: kInk,
-                              onChanged: (v) =>
-                                  setState(() => _includeOfficers = v ?? true)),
-                          CheckboxListTile(
-                              value: _includeJco,
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              controlAffinity: ListTileControlAffinity.leading,
-                              title: const Text("JCOs / OR's",
-                                  style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600)),
-                              activeColor: kGold,
-                              checkColor: kInk,
-                              onChanged: (v) =>
-                                  setState(() => _includeJco = v ?? true)),
-                          const SizedBox(height: 18),
-                          const SectionHeader('Personnel Filters',
-                              icon: Icons.filter_alt_outlined),
-                          const SizedBox(height: 12),
-                          _dd('Rank', _rank, kAllRanks,
-                              (v) => setState(() => _rank = v)),
-                          const SizedBox(height: 10),
-                          _dd('Blood Group', _bloodGp, kBlood,
-                              (v) => setState(() => _bloodGp = v)),
-                          const SizedBox(height: 10),
-                          _dd('Age', _ageBracket, _ageBrackets,
-                              (v) => setState(() => _ageBracket = v)),
-                          const SizedBox(height: 10),
-                          _dd('Domicile', _domicile, kDomicile,
-                              (v) => setState(() => _domicile = v)),
-                          const SizedBox(height: 10),
-                          _dd('Civ Education', _civEdn, kEducation,
-                              (v) => setState(() => _civEdn = v)),
-                          const SizedBox(height: 10),
-                          _dd('Coy', _coy, kCoys,
-                              (v) => setState(() => _coy = v)),
-                          const SizedBox(height: 10),
-                          Column(
+                child: Column(children: [
+                  // Scrollable filters area
+                  Expanded(
+                      child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+                          child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Text('MED CAT CONTAINS',
-                                        style: kLabelStyle)),
+                                const SectionHeader('Search',
+                                    icon: Icons.search),
+                                const SizedBox(height: 10),
                                 TextField(
-                                    controller: _medCat,
+                                    controller: _search,
                                     style: kFieldStyle,
-                                    decoration: kDec('e.g. SHAPE 1')),
-                              ]),
-                          const SizedBox(height: 18),
-                          const SectionHeader('Has Admin Record',
-                              icon: Icons.fact_check_outlined,
-                              accentColor: kAccentBlue),
-                          const SizedBox(height: 6),
-                          const Padding(
-                              padding: EdgeInsets.only(bottom: 6),
-                              child: Text(
-                                  'Tick to require ALL selected record types — matching record fields are added as extra columns in results/print',
-                                  style: TextStyle(
-                                      fontSize: 10.5,
-                                      color: kInkSoft,
-                                      fontStyle: FontStyle.italic))),
-                          _chk('Leave Record', _hasLeave,
-                              (v) => setState(() => _hasLeave = v ?? false)),
-                          _chk('Health Record', _hasHealth,
-                              (v) => setState(() => _hasHealth = v ?? false)),
-                          _chk('ERE Record', _hasEre,
-                              (v) => setState(() => _hasEre = v ?? false)),
-                          _chk('Out Strength Record', _hasOutStr,
-                              (v) => setState(() => _hasOutStr = v ?? false)),
-                          _chk('Firing Record', _hasFiring,
-                              (v) => setState(() => _hasFiring = v ?? false)),
-                          _chk('CPT Record', _hasCpt,
-                              (v) => setState(() => _hasCpt = v ?? false)),
-                          const SizedBox(height: 20),
-                          Row(children: [
-                            Expanded(
-                                child: OutlinedButton.icon(
-                                    onPressed: _clearAll,
-                                    icon: const Icon(Icons.refresh, size: 16),
-                                    label: const Text('Clear'),
-                                    style: OutlinedButton.styleFrom(
-                                        foregroundColor: kSlate,
-                                        side: const BorderSide(color: kSlate),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 13),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                                kRadius))))),
-                            const SizedBox(width: 10),
-                            Expanded(
-                                flex: 2,
-                                child: FilledButton.icon(
-                                    onPressed: _loading ? null : _runSearch,
-                                    icon: _loading
-                                        ? const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2, color: kInk))
-                                        : const Icon(Icons.search,
-                                            size: 18, color: kInk),
-                                    label: const Text('Search',
+                                    decoration:
+                                        kDec('Name or Army No / IC No...')),
+
+                                const SizedBox(height: 14),
+                                const SectionHeader('Personnel Type',
+                                    icon: Icons.groups_outlined),
+                                const SizedBox(height: 6),
+                                CheckboxListTile(
+                                    value: _includeOfficers,
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    title: const Text('Officers',
                                         style: TextStyle(
-                                            color: kInk,
-                                            fontWeight: FontWeight.w800)),
-                                    style: FilledButton.styleFrom(
-                                        backgroundColor: kGold,
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 13),
-                                        shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                                kRadius))))),
-                          ]),
-                        ])))),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600)),
+                                    activeColor: kGold,
+                                    checkColor: kInk,
+                                    onChanged: (v) => setState(
+                                        () => _includeOfficers = v ?? true)),
+                                CheckboxListTile(
+                                    value: _includeJco,
+                                    dense: true,
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity:
+                                        ListTileControlAffinity.leading,
+                                    title: const Text("JCOs / OR's",
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600)),
+                                    activeColor: kGold,
+                                    checkColor: kInk,
+                                    onChanged: (v) => setState(
+                                        () => _includeJco = v ?? true)),
+
+                                const SizedBox(height: 14),
+                                const SectionHeader('Personnel Filters',
+                                    icon: Icons.filter_alt_outlined),
+                                const SizedBox(height: 10),
+                                _dd('Rank', _rank, kAllRanks,
+                                    (v) => setState(() => _rank = v)),
+                                const SizedBox(height: 10),
+                                _dd('Blood Group', _bloodGp, kBlood,
+                                    (v) => setState(() => _bloodGp = v)),
+                                const SizedBox(height: 10),
+                                _dd('Age', _ageBracket, _ageBrackets,
+                                    (v) => setState(() => _ageBracket = v)),
+                                const SizedBox(height: 10),
+                                _dd('Domicile', _domicile, kDomicile,
+                                    (v) => setState(() => _domicile = v)),
+                                const SizedBox(height: 10),
+                                _dd('Civ Education', _civEdn, kEducation,
+                                    (v) => setState(() => _civEdn = v)),
+                                const SizedBox(height: 10),
+                                _dd('Army Course', _course, _courseOptions,
+                                    (v) => setState(() => _course = v)),
+                                const SizedBox(height: 10),
+                                _dd('Coy', _coy, kCoys,
+                                    (v) => setState(() => _coy = v)),
+                                const SizedBox(height: 10),
+                                Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 4),
+                                          child: Text('MED CAT CONTAINS',
+                                              style: kLabelStyle)),
+                                      TextField(
+                                          controller: _medCat,
+                                          style: kFieldStyle,
+                                          decoration: kDec('e.g. SHAPE 1')),
+                                    ]),
+
+                                const SizedBox(height: 14),
+                                const SectionHeader('Has Admin Record',
+                                    icon: Icons.fact_check_outlined,
+                                    accentColor: kAccentBlue),
+                                const SizedBox(height: 4),
+                                const Padding(
+                                    padding: EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                        'Tick to filter — matching fields added as extra columns',
+                                        style: TextStyle(
+                                            fontSize: 10.5,
+                                            color: kInkSoft,
+                                            fontStyle: FontStyle.italic))),
+                                _chk(
+                                    'Leave Record',
+                                    _hasLeave,
+                                    (v) =>
+                                        setState(() => _hasLeave = v ?? false)),
+                                _chk(
+                                    'Health Record',
+                                    _hasHealth,
+                                    (v) => setState(
+                                        () => _hasHealth = v ?? false)),
+                                _chk(
+                                    'ERE Record',
+                                    _hasEre,
+                                    (v) =>
+                                        setState(() => _hasEre = v ?? false)),
+                                _chk(
+                                    'Out Strength Record',
+                                    _hasOutStr,
+                                    (v) => setState(
+                                        () => _hasOutStr = v ?? false)),
+                                _chk(
+                                    'Firing Record',
+                                    _hasFiring,
+                                    (v) => setState(
+                                        () => _hasFiring = v ?? false)),
+                                _chk(
+                                    'CPT Record',
+                                    _hasCpt,
+                                    (v) =>
+                                        setState(() => _hasCpt = v ?? false)),
+                                const SizedBox(
+                                    height:
+                                        80), // space so last item isn't hidden behind buttons
+                              ]))),
+
+                  // ── Floating Search/Clear pinned at bottom ─────────────────
+                  Container(
+                    decoration: const BoxDecoration(
+                        color: kSurface,
+                        border: Border(top: BorderSide(color: kBorder))),
+                    padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
+                    child: Row(children: [
+                      Expanded(
+                          child: OutlinedButton.icon(
+                              onPressed: _clearAll,
+                              icon: const Icon(Icons.refresh, size: 16),
+                              label: const Text('Clear'),
+                              style: OutlinedButton.styleFrom(
+                                  foregroundColor: kSlate,
+                                  side: const BorderSide(color: kSlate),
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 13),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(kRadius))))),
+                      const SizedBox(width: 10),
+                      Expanded(
+                          flex: 2,
+                          child: FilledButton.icon(
+                              onPressed: _loading ? null : _runSearch,
+                              icon: _loading
+                                  ? const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2, color: kInk))
+                                  : const Icon(Icons.search,
+                                      size: 18, color: kInk),
+                              label: const Text('Search',
+                                  style: TextStyle(
+                                      color: kInk,
+                                      fontWeight: FontWeight.w800)),
+                              style: FilledButton.styleFrom(
+                                  backgroundColor: kGold,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 13),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(kRadius))))),
+                    ]),
+                  ),
+                ]))),
+
         Container(width: 1, color: kBorder),
-        // Right: results
+
+        // ── Right results pane ────────────────────────────────────────────
         Expanded(
             child: Container(
                 color: const Color(0xFFD6D8DB), child: _buildResults())),
@@ -392,16 +469,9 @@ class _FilterEngineState extends State<FilterEngine> {
   }
 
   Widget _buildResults() {
-    if (!_searched) {
-      return const Center(
-          child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                  'Set your filters and tap Search to pull matching records from across the database.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: kInkSoft, fontSize: 13))));
+    if (!_searched || _loading) {
+      return const Center(child: CircularProgressIndicator());
     }
-    if (_loading) return const Center(child: CircularProgressIndicator());
     if (_results.isEmpty) {
       return const Center(
           child: Padding(
@@ -418,12 +488,8 @@ class _FilterEngineState extends State<FilterEngine> {
       5: const FixedColumnWidth(50),
       6: const FixedColumnWidth(70),
       7: const FixedColumnWidth(80),
-      8: const FixedColumnWidth(100)
+      8: const FixedColumnWidth(100),
     };
-    // The card always fills the full width of the results pane. Only the
-    // Table itself scrolls horizontally when there are too many columns
-    // (e.g. several "has X record" filters active) to fit — so a short
-    // table doesn't leave grey page background showing on the right.
     return SingleChildScrollView(
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
         child: Container(
@@ -452,7 +518,7 @@ class _FilterEngineState extends State<FilterEngine> {
                 Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(
-                        'Showing extra columns for: ${_activeExtraCols.map((c) => c.$1).join(", ")}',
+                        'Extra columns: ${_activeExtraCols.map((c) => c.$1).join(", ")}',
                         style: const TextStyle(
                             fontSize: 11,
                             color: kAccentBlue,
@@ -546,6 +612,7 @@ class _FilterEngineState extends State<FilterEngine> {
       child: Text(t,
           style: const TextStyle(
               fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: .3)));
+
   Widget _td(String t, {bool bold = false}) => Padding(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
       child: Text(t,
@@ -553,6 +620,7 @@ class _FilterEngineState extends State<FilterEngine> {
               fontSize: 11,
               fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
               color: kInk)));
+
   Widget _typeBadge(String t) {
     final isOfficer = t == 'Officer';
     final c = isOfficer ? kGold : kAccentBlue;

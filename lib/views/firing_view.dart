@@ -115,7 +115,9 @@ class _FiringViewState extends State<FiringView> {
     final rows = _filtered;
     return Column(children: [
       Container(
-          color: kHeader,
+          decoration: const BoxDecoration(
+              color: kHeader,
+              border: Border(bottom: BorderSide(color: kGold, width: 2.5))),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
           child: Row(children: [
             Expanded(child: Text(_title, style: kSectionTitle)),
@@ -292,17 +294,46 @@ class _FiringViewState extends State<FiringView> {
               fontSize: 11,
               fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
               color: kInk)));
-  Widget _tdBadge(String t) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          decoration: BoxDecoration(
-              color: kGoldSoft,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: kGold.withOpacity(.35))),
-          child: Text(t,
-              style: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF8A6310)))));
+  Widget _tdBadge(String t) {
+    final cfg = switch (t) {
+      'MM' => (
+          const Color(0xFFFFF3E0),
+          const Color(0xFFE65100),
+          const Color(0xFFBF360C)
+        ), // orange
+      'FC' => (
+          const Color(0xFFE3F2FD),
+          const Color(0xFF1565C0),
+          const Color(0xFF0D47A1)
+        ), // blue
+      'SS' => (
+          const Color(0xFFE8F5E9),
+          const Color(0xFF2E7D32),
+          const Color(0xFF1B5E20)
+        ), // green
+      'Fail' => (
+          const Color(0xFFFFEBEE),
+          const Color(0xFFC62828),
+          const Color(0xFFB71C1C)
+        ), // red
+      _ => (
+          const Color(0xFFF5F5F5),
+          const Color(0xFF757575),
+          const Color(0xFF424242)
+        ), // grey
+    };
+    return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+        child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+                color: cfg.$1,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: cfg.$2.withOpacity(.4))),
+            child: Text(t,
+                style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: cfg.$3))));
+  }
 }

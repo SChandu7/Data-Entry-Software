@@ -787,6 +787,7 @@ class AppDatabase {
     String? civEdn,
     String? coy,
     String? medCatContains,
+    String? course,
     bool hasLeave = false,
     bool hasHealth = false,
     bool hasEre = false,
@@ -796,17 +797,34 @@ class AppDatabase {
   }) async {
     final db = await database;
     final parts = <String>[];
+    // Officers columns: c_yo,c_mmg,c_mor,c_snip,c_adp,c_atgm,c_pwt,
+    //                   c_jc,c_sc,c_cdo,c_qm,c_tac,c_rcl,c_rso,c_pt,c_dssc,c_bsw,c_oth
+    // JCO/OR columns:   c_sec,c_mmg,c_mor,c_snip,c_adp,c_atgm,c_drill,c_bmic,c_uei,
+    //                   c_cdo,c_qm,c_rsi,c_jlc,c_pc,c_pt,c_tpt,c_misc,c_bsw
+    // Unified aliases: yo,mmg,mor,snip,adp,atgm,jc_or_drill,sc_or_bmic,cdo,qm,pt,bsw,oth_or_misc
     if (includeOfficers) {
       parts.add('''
         SELECT 'Officer' as ptype, ic_no as army_no, rank, name, '-' as coy,
-               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob
+               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob,
+               c_yo as u_yo, c_mmg as u_mmg, c_mor as u_mor, c_snip as u_snip,
+               c_adp as u_adp, c_atgm as u_atgm,
+               c_pwt as u_jc, c_jc as u_sc, c_sc as u_cdo2,
+               c_cdo as u_cdo, c_qm as u_qm, c_tac as u_tac,
+               c_rcl as u_rcl, c_rso as u_rso, c_pt as u_pt,
+               c_dssc as u_dssc, c_bsw as u_bsw, c_oth as u_oth
         FROM officers
       ''');
     }
     if (includeJco) {
       parts.add('''
         SELECT 'JCO/OR' as ptype, army_no, rank, name, coy,
-               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob
+               blood_gp, med_cat, domicile, civ_edn, sub_cat, dob,
+               NULL as u_yo, c_mmg as u_mmg, c_mor as u_mor, c_snip as u_snip,
+               c_adp as u_adp, c_atgm as u_atgm,
+               c_sec as u_jc, c_drill as u_sc, c_bmic as u_cdo2,
+               c_cdo as u_cdo, c_qm as u_qm, c_rsi as u_tac,
+               c_jlc as u_rcl, c_pc as u_rso, c_pt as u_pt,
+               c_tpt as u_dssc, c_bsw as u_bsw, c_misc as u_oth
         FROM jco_or
       ''');
     }
@@ -844,11 +862,11 @@ class AppDatabase {
       where.add('med_cat LIKE ?');
       args.add('%${medCatContains.trim()}%');
     }
+    if (course != null) {
+      final col = _courseUnifiedCol(course);
+      if (col != null) where.add("($col IS NOT NULL AND $col != '')");
+    }
 
-    // For each active "has X record" filter: require the record to exist,
-    // AND pull that record type's most relevant fields as extra columns —
-    // only when that filter is active, so the results/print stay focused
-    // on what was actually asked for rather than showing every table always.
     final extraCols = <String>[];
     if (hasLeave) {
       where.add(
@@ -904,5 +922,24 @@ class AppDatabase {
     final sql =
         'SELECT t.*$extraSelect FROM ($union) t $whereClause ORDER BY name';
     return db.rawQuery(sql, args);
+  }
+
+  String? _courseUnifiedCol(String course) {
+    const m = {
+      'YO': 'u_yo',
+      'MMG AGL': 'u_mmg',
+      'MOR (O)': 'u_mor',
+      'Sniper': 'u_snip',
+      'ADP': 'u_adp',
+      'ATGM': 'u_atgm',
+      'JC': 'u_jc',
+      'SC': 'u_sc',
+      'CDO/GTK': 'u_cdo',
+      'QM (O)': 'u_qm',
+      'PT': 'u_pt',
+      'BSW (O)': 'u_bsw',
+      'Others': 'u_oth',
+    };
+    return m[course];
   }
 }
